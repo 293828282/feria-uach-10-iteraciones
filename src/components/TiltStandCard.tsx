@@ -8,7 +8,6 @@ import {
   ChevronRightIcon,
   LightbulbIdeaIcon,
   EyeExpandIcon,
-  QRIcon,
   ClipboardCheckIcon,
 } from '@/components/ui/vectors';
 import { RippleButton } from '@/components/ui/RippleButton';
@@ -22,7 +21,6 @@ interface TiltStandCardProps {
   judgeAvg: number;
   onEvaluate: () => void;
   onOpenImage?: (imageUrl: string, standName: string, category: string) => void;
-  onOpenQR?: (stand: Stand) => void;
   onOpenSheet?: (stand: Stand) => void;
 }
 
@@ -34,7 +32,6 @@ export const TiltStandCard: React.FC<TiltStandCardProps> = ({
   judgeAvg,
   onEvaluate,
   onOpenImage,
-  onOpenQR,
   onOpenSheet,
 }) => {
   const cardRef = useRef<HTMLDivElement | null>(null);
@@ -136,20 +133,6 @@ export const TiltStandCard: React.FC<TiltStandCardProps> = ({
                   className="p-1.5 rounded-full bg-white/90 hover:bg-white text-slate-700 border border-slate-200/80 shadow-xs backdrop-blur-md transition-colors"
                 >
                   <EyeExpandIcon size={14} />
-                </button>
-              )}
-
-              {onOpenQR && (
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onOpenQR(stand);
-                  }}
-                  title="Generar código QR"
-                  className="p-1.5 rounded-full bg-white/90 hover:bg-white text-slate-700 border border-slate-200/80 shadow-xs backdrop-blur-md transition-colors"
-                >
-                  <QRIcon size={14} />
                 </button>
               )}
             </div>

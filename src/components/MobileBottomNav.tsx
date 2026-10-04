@@ -66,9 +66,15 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
           </span>
         </button>
 
-        {/* Tab: Podio Oficial */}
+        {/* Tab: Podio Oficial (Solo Admin) */}
         <button
-          onClick={() => onChangeTab('podium')}
+          onClick={() => {
+            if (isAdmin) {
+              onChangeTab('podium');
+            } else {
+              onOpenAdminLogin();
+            }
+          }}
           className={`flex flex-col items-center justify-center flex-1 py-1.5 rounded-2xl transition-all ${
             currentTab === 'podium'
               ? 'text-amber-700 font-bold bg-amber-50/90'
@@ -76,7 +82,14 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
           }`}
           style={{ minHeight: '48px' }}
         >
-          <AwardTrophyIcon size={20} className={currentTab === 'podium' ? 'text-amber-500' : ''} />
+          <div className="relative">
+            <AwardTrophyIcon size={20} className={currentTab === 'podium' ? 'text-amber-500' : ''} />
+            {!isAdmin && (
+              <span className="absolute -top-1 -right-2 text-[9px] bg-slate-200 text-slate-700 rounded-full px-1 font-mono">
+                Admin
+              </span>
+            )}
+          </div>
           <span className="text-[10px] mt-1 tracking-tight">Podio</span>
         </button>
 

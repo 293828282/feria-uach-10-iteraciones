@@ -21,7 +21,7 @@ export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (password === 'clemente es bacán') {
+    if (password.trim() === 'Clemeva' || password.trim().toLowerCase() === 'clemeva') {
       setPassword('');
       setErrorMsg('');
       onSuccess();

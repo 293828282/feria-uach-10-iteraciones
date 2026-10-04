@@ -19,7 +19,6 @@ import { AdminLoginModal } from '@/components/AdminLoginModal';
 import { WelcomeJudgeGate } from '@/components/WelcomeJudgeGate';
 import { MobileBottomNav } from '@/components/MobileBottomNav';
 import { StandImageLightbox } from '@/components/StandImageLightbox';
-import { StandQRCodeModal } from '@/components/StandQRCodeModal';
 import { StandDetailSheet } from '@/components/StandDetailSheet';
 import {
   SearchIcon,
@@ -27,6 +26,8 @@ import {
   CloseIcon,
   UniversityShieldIcon,
   CheckIcon,
+  LockIcon,
+  AwardTrophyIcon,
 } from '@/components/ui/vectors';
 import { RippleButton } from '@/components/ui/RippleButton';
 
@@ -62,7 +63,7 @@ export default function Home() {
   const [selectedStatus, setSelectedStatus] = useState<'all' | 'pending' | 'completed'>('all');
   const searchInputRef = useRef<HTMLInputElement>(null);
 
-  // Stand Image Lightbox & QR Modals
+  // Stand Image Lightbox & Sheet Modals
   const [lightboxData, setLightboxData] = useState<{
     isOpen: boolean;
     imageUrl: string;
@@ -74,7 +75,6 @@ export default function Home() {
     name: '',
     category: '',
   });
-  const [qrModalStand, setQrModalStand] = useState<Stand | null>(null);
   const [detailSheetStand, setDetailSheetStand] = useState<Stand | null>(null);
 
   // Global keyboard shortcut '/' to focus search
@@ -505,7 +505,6 @@ export default function Home() {
                               category: cat,
                             })
                           }
-                          onOpenQR={(st) => setQrModalStand(st)}
                           onOpenSheet={() => setDetailSheetStand(stand)}
                         />
                       );
@@ -517,15 +516,38 @@ export default function Home() {
           </div>
         )}
 
-        {/* VIEW 2: PODIUM & OFFICIAL LEADERBOARD DIRECT ACCESS */}
+        {/* VIEW 2: PODIUM & OFFICIAL LEADERBOARD (ACCESO EXCLUSIVO ADMINISTRADOR) */}
         {activeView === 'podium' && (
           <div>
-            <PodiumSection
-              rankings={standRankings}
-              criteria={criteria}
-              totalEvaluationsCount={evaluations.length}
-              totalJudgesCount={judges.filter((j) => j.is_active).length}
-            />
+            {isAdmin ? (
+              <PodiumSection
+                rankings={standRankings}
+                criteria={criteria}
+                totalEvaluationsCount={evaluations.length}
+                totalJudgesCount={judges.filter((j) => j.is_active).length}
+              />
+            ) : (
+              <div className="max-w-md mx-auto py-16 text-center">
+                <div className="glass-panel rounded-3xl p-8 shadow-xl border border-white/80">
+                  <div className="w-14 h-14 mx-auto rounded-2xl bg-amber-50 border border-amber-200 flex items-center justify-center text-amber-600 mb-4 shadow-sm">
+                    <AwardTrophyIcon size={26} />
+                  </div>
+                  <h2 className="text-base font-bold text-slate-900 mb-2 font-serif">
+                    Podio Reservado Exclusivamente para el Administrador
+                  </h2>
+                  <p className="text-xs text-slate-600 mb-6 leading-relaxed">
+                    Para resguardar la imparcialidad del certamen de la UACh Sede Puerto Montt, la visualización de los ganadores y podio oficial está restringida a la administración. Ingresa la clave para acceder.
+                  </p>
+                  <RippleButton
+                    onClick={() => setIsAdminModalOpen(true)}
+                    isActive={true}
+                    className="rounded-xl px-5 py-2.5 text-xs font-bold w-full"
+                  >
+                    Ingresar Clave Administrador
+                  </RippleButton>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -627,16 +649,6 @@ export default function Home() {
         }
       />
 
-      {qrModalStand && (
-        <StandQRCodeModal
-          isOpen={true}
-          standId={qrModalStand.id}
-          standNumber={Number(qrModalStand.stand_number)}
-          standName={qrModalStand.project_name}
-          onClose={() => setQrModalStand(null)}
-        />
-      )}
-
       {/* Stand Technical Detail Sheet */}
       <StandDetailSheet
         isOpen={!!detailSheetStand}
@@ -660,7 +672,6 @@ export default function Home() {
             category: cat,
           })
         }
-        onOpenQR={(st) => setQrModalStand(st)}
       />
     </div>
   );

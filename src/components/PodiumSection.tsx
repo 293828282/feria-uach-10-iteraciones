@@ -18,6 +18,7 @@ import { RippleButton } from '@/components/ui/RippleButton';
 import { StandRadarChart } from '@/components/StandRadarChart';
 import { firePodiumVictoryConfetti } from '@/lib/celebration';
 import { exportRankingsToCSV } from '@/lib/exportCsv';
+import { exportPodiumToWord } from '@/lib/exportWord';
 
 function getStandImage(standNumber: string) {
   const clean = standNumber.replace(/\D/g, '').padStart(2, '0');
@@ -39,6 +40,7 @@ export const PodiumSection: React.FC<PodiumSectionProps> = ({
   totalJudgesCount,
 }) => {
   const [selectedRadarStandId, setSelectedRadarStandId] = useState<string | null>(null);
+  const [isExportingWord, setIsExportingWord] = useState(false);
 
   const first = rankings[0];
   const second = rankings[1];
@@ -225,6 +227,31 @@ export const PodiumSection: React.FC<PodiumSectionProps> = ({
         </div>
 
         <div className="flex items-center gap-2.5 flex-wrap">
+          <RippleButton
+            onClick={async () => {
+              if (isExportingWord) return;
+              setIsExportingWord(true);
+              try {
+                await exportPodiumToWord(rankings, criteria, {
+                  totalEvaluations: totalEvaluationsCount,
+                  totalJudges: totalJudgesCount,
+                  globalAverage,
+                  consensusRate,
+                  standardDeviation,
+                });
+              } catch (err) {
+                console.error('Error al exportar Word:', err);
+              } finally {
+                setIsExportingWord(false);
+              }
+            }}
+            disabled={isExportingWord}
+            className="flex items-center gap-2 px-3.5 py-2 text-xs font-semibold rounded-xl text-sky-900 bg-sky-100 hover:bg-sky-200 border border-sky-300/80 shadow-xs"
+          >
+            <DownloadDocIcon size={15} />
+            <span>{isExportingWord ? 'Generando Word con Fotos...' : 'Descargar Acta Word (con Fotos)'}</span>
+          </RippleButton>
+
           <RippleButton
             onClick={() => exportRankingsToCSV(rankings)}
             className="flex items-center gap-2 px-3.5 py-2 text-xs font-semibold rounded-xl text-slate-800"

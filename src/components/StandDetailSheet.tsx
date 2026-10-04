@@ -8,7 +8,6 @@ import {
   UsersIcon,
   LightbulbIdeaIcon,
   TargetGoalIcon,
-  QRIcon,
   ClipboardCheckIcon,
   CheckIcon,
   EyeExpandIcon,
@@ -23,7 +22,6 @@ interface StandDetailSheetProps {
   onClose: () => void;
   onStartEvaluation: (stand: Stand) => void;
   onOpenImage: (imageUrl: string, name: string, category: string) => void;
-  onOpenQR: (stand: Stand) => void;
 }
 
 function getStandImage(standNumber: string) {
@@ -40,7 +38,6 @@ export const StandDetailSheet: React.FC<StandDetailSheetProps> = ({
   onClose,
   onStartEvaluation,
   onOpenImage,
-  onOpenQR,
 }) => {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -113,13 +110,6 @@ export const StandDetailSheet: React.FC<StandDetailSheetProps> = ({
                   title="Ampliar Lámina"
                 >
                   <EyeExpandIcon size={16} />
-                </button>
-                <button
-                  onClick={() => onOpenQR(stand)}
-                  className="p-2 rounded-xl bg-white/20 hover:bg-white/30 backdrop-blur-md transition-colors"
-                  title="Código QR"
-                >
-                  <QRIcon size={16} />
                 </button>
               </div>
             </div>

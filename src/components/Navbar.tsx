@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
 import Image from 'next/image';
 import { Judge } from '@/types/database';
 import {
@@ -8,13 +8,8 @@ import {
   LockIcon,
   LogoutIcon,
   AwardTrophyIcon,
-  SoundHighIcon,
-  SoundMuteIcon,
-  CloudCheckIcon,
 } from '@/components/ui/vectors';
 import { RippleButton } from '@/components/ui/RippleButton';
-import { useOnlineStatus } from '@/lib/useOnlineStatus';
-import { soundFX } from '@/lib/soundFx';
 
 interface NavbarProps {
   currentJudge: Judge | null;
@@ -37,15 +32,6 @@ export const Navbar: React.FC<NavbarProps> = ({
   activeView,
   setActiveView,
 }) => {
-  const isOnline = useOnlineStatus();
-  const [isMuted, setIsMuted] = useState<boolean>(() => soundFX.getMuted());
-
-  const handleToggleSound = () => {
-    const nextMuted = !isMuted;
-    setIsMuted(nextMuted);
-    soundFX.setMuted(nextMuted);
-  };
-
   return (
     <header className="sticky top-2 z-40 px-3 sm:px-6 pt-2">
       <div className="max-w-7xl mx-auto rounded-3xl squircle-card px-4 sm:px-6 py-3 flex items-center justify-between border border-white/95 shadow-velvet">
@@ -78,16 +64,6 @@ export const Navbar: React.FC<NavbarProps> = ({
 
         {/* Actions & Navigation with Ripple Buttons */}
         <div className="flex items-center gap-2 sm:gap-3">
-          {/* Sound Toggle Button */}
-          <button
-            type="button"
-            onClick={handleToggleSound}
-            title={isMuted ? 'Activar sonido de la plataforma' : 'Silenciar sonido'}
-            className="p-2 rounded-xl text-slate-500 hover:text-slate-800 bg-white/70 hover:bg-white border border-slate-200/80 transition-colors shadow-xs"
-          >
-            {isMuted ? <SoundMuteIcon size={16} /> : <SoundHighIcon size={16} />}
-          </button>
-
           {/* Active View Selector Island (Visible on desktop; Mobile uses MobileBottomNav) */}
           <div className="hidden sm:flex items-center rounded-2xl border border-slate-300/80 bg-white/80 p-1 shadow-sm">
             <RippleButton
@@ -100,12 +76,19 @@ export const Navbar: React.FC<NavbarProps> = ({
             </RippleButton>
 
             <RippleButton
-              onClick={() => setActiveView('podium')}
+              onClick={() => {
+                if (isAdmin) {
+                  setActiveView('podium');
+                } else {
+                  onOpenAdminModal();
+                }
+              }}
               isActive={activeView === 'podium'}
-              className="px-2.5 sm:px-3 py-1.5 text-xs font-semibold rounded-xl border-none shadow-none"
+              className="px-2.5 sm:px-3 py-1.5 text-xs font-semibold rounded-xl border-none shadow-none flex items-center gap-1"
             >
               <AwardTrophyIcon size={14} className={activeView === 'podium' ? 'text-amber-500' : ''} />
               <span className="hidden sm:inline">Podio</span>
+              {!isAdmin && <LockIcon size={11} className="text-slate-400" />}
             </RippleButton>
 
             <RippleButton

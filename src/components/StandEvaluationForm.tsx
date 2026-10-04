@@ -17,14 +17,12 @@ import {
   ArrowRightCircleIcon,
   ArrowLeftCircleIcon,
   EyeExpandIcon,
-  QRIcon,
   QuotesIcon,
 } from '@/components/ui/vectors';
 import { StandRadarChart } from '@/components/StandRadarChart';
 import { RippleButton } from '@/components/ui/RippleButton';
 import { PitchTimer } from '@/components/PitchTimer';
 import { StandImageLightbox } from '@/components/StandImageLightbox';
-import { StandQRCodeModal } from '@/components/StandQRCodeModal';
 import { fireEvaluationConfetti } from '@/lib/celebration';
 import { soundFX } from '@/lib/soundFx';
 
@@ -68,11 +66,10 @@ export const StandEvaluationForm: React.FC<StandEvaluationFormProps> = ({
   const [showRadar, setShowRadar] = useState(false);
   const [showTimer, setShowTimer] = useState(false);
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
-  const [isQROpen, setIsQROpen] = useState(false);
 
-  // Gemini AI Assistant State
+  // Gemini AI Assistant State (Formular Preguntas o Mejorar Redacción)
   const [isGeneratingAI, setIsGeneratingAI] = useState(false);
-  const [aiMode, setAiMode] = useState<'feedback' | 'defense_questions' | 'swot_brief'>('feedback');
+  const [aiMode, setAiMode] = useState<'questions' | 'improve_draft'>('questions');
   const [aiNotice, setAiNotice] = useState<string | null>(null);
 
   // Storage key for local auto-drafting
@@ -168,14 +165,8 @@ export const StandEvaluationForm: React.FC<StandEvaluationFormProps> = ({
   const prevStand = currentStandIndex > 0 ? allStands[currentStandIndex - 1] : null;
   const nextStand = currentStandIndex >= 0 && currentStandIndex < allStands.length - 1 ? allStands[currentStandIndex + 1] : null;
 
-  // Trigger Gemini AI Assistant
-  const handleGenerateAIFeedback = async (selectedMode: 'feedback' | 'defense_questions' | 'swot_brief' = aiMode) => {
-    if (answeredCount < 2) {
-      setAiNotice('Califica al menos 2 criterios para que Gemini AI contextualice el dictamen.');
-      setTimeout(() => setAiNotice(null), 3500);
-      return;
-    }
-
+  // Trigger Gemini AI Assistant (Exclusivo para el Evaluador: Formular Preguntas o Mejorar Redacción)
+  const handleGenerateAIFeedback = async (selectedMode: 'questions' | 'improve_draft' = aiMode) => {
     setIsGeneratingAI(true);
     setAiNotice(null);
     try {
@@ -189,6 +180,7 @@ export const StandEvaluationForm: React.FC<StandEvaluationFormProps> = ({
           scores,
           criteria,
           mode: selectedMode,
+          currentDraft: generalFeedback,
         }),
       });
 
@@ -198,10 +190,14 @@ export const StandEvaluationForm: React.FC<StandEvaluationFormProps> = ({
       }
 
       setGeneralFeedback(data.feedback);
-      setAiNotice('Propuesta académica generada exitosamente con Gemini IA.');
+      setAiNotice(
+        selectedMode === 'questions'
+          ? 'Preguntas formuladas con éxito para la defensa del equipo.'
+          : 'Redacción de observaciones perfeccionada para el acta oficial.'
+      );
       setTimeout(() => setAiNotice(null), 4000);
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Error al generar feedback.';
+      const msg = err instanceof Error ? err.message : 'Error al conectar con el Asistente IA.';
       setAiNotice(`Aviso IA: ${msg}`);
     } finally {
       setIsGeneratingAI(false);
@@ -360,14 +356,6 @@ export const StandEvaluationForm: React.FC<StandEvaluationFormProps> = ({
             >
               <EyeExpandIcon size={16} />
               <span className="hidden sm:inline">Ver Lámina</span>
-            </button>
-            <button
-              onClick={() => setIsQROpen(true)}
-              className="p-2 rounded-xl bg-white/90 hover:bg-white text-slate-700 border border-slate-200/80 shadow-sm backdrop-blur-md transition-all flex items-center gap-1.5 text-xs font-semibold"
-              title="Código QR del Stand"
-            >
-              <QRIcon size={16} />
-              <span className="hidden sm:inline">QR Móvil</span>
             </button>
           </div>
         </div>
@@ -535,53 +523,40 @@ export const StandEvaluationForm: React.FC<StandEvaluationFormProps> = ({
           <div>
             <label htmlFor="eval-feedback" className="block text-xs sm:text-sm font-bold text-slate-900 uppercase tracking-wider flex items-center gap-1.5 font-serif">
               <QuotesIcon size={16} className="text-sky-700" />
-              <span>Dictamen Académico Oficial y Diagnóstico FODA IA</span>
+              <span>Asistente del Evaluador: Preguntas & Redacción</span>
             </label>
             <p className="text-[11px] text-slate-600 mt-0.5">
-              Evaluación cualitativa exhaustiva, preguntas de defensa y dictamen directivo (UACh Sede Puerto Montt).
+              Herramienta exclusiva para el jurado: formula preguntas para interrogar al equipo o perfecciona la redacción de tus observaciones.
             </p>
           </div>
 
-          {/* AI Mode Selector Tabs */}
-          <div className="flex items-center gap-1.5 flex-wrap">
+          {/* Evaluator AI Tool Buttons */}
+          <div className="flex items-center gap-2 flex-wrap">
             <button
               type="button"
               onClick={() => {
-                setAiMode('feedback');
-                handleGenerateAIFeedback('feedback');
+                setAiMode('questions');
+                handleGenerateAIFeedback('questions');
               }}
               disabled={isGeneratingAI}
-              className={`text-xs px-3 sm:px-3.5 py-1.5 sm:py-2 rounded-xl font-semibold transition-all ${
-                aiMode === 'feedback' ? 'btn-light-gray-active' : 'btn-light-gray'
+              className={`text-xs px-3.5 py-2 rounded-xl font-semibold transition-all ${
+                aiMode === 'questions' ? 'btn-light-gray-active' : 'btn-light-gray'
               }`}
             >
-              Dictamen Extenso
+              Formular Preguntas
             </button>
             <button
               type="button"
               onClick={() => {
-                setAiMode('defense_questions');
-                handleGenerateAIFeedback('defense_questions');
+                setAiMode('improve_draft');
+                handleGenerateAIFeedback('improve_draft');
               }}
               disabled={isGeneratingAI}
-              className={`text-xs px-3 sm:px-3.5 py-1.5 sm:py-2 rounded-xl font-semibold transition-all ${
-                aiMode === 'defense_questions' ? 'btn-light-gray-active' : 'btn-light-gray'
+              className={`text-xs px-3.5 py-2 rounded-xl font-semibold transition-all ${
+                aiMode === 'improve_draft' ? 'btn-light-gray-active' : 'btn-light-gray'
               }`}
             >
-              Preguntas Defensa
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setAiMode('swot_brief');
-                handleGenerateAIFeedback('swot_brief');
-              }}
-              disabled={isGeneratingAI}
-              className={`text-xs px-3 sm:px-3.5 py-1.5 sm:py-2 rounded-xl font-semibold transition-all ${
-                aiMode === 'swot_brief' ? 'btn-light-gray-active' : 'btn-light-gray'
-              }`}
-            >
-              FODA Completo
+              Mejorar Redacción
             </button>
           </div>
         </div>
@@ -599,20 +574,20 @@ export const StandEvaluationForm: React.FC<StandEvaluationFormProps> = ({
           </div>
         )}
 
-        {/* Enlarged Textarea for Fully Developed Long Form Dictamen */}
+        {/* Enlarged Textarea for Evaluator Notes & Refined Text */}
         <div className="relative">
           <textarea
             id="eval-feedback"
             rows={12}
             value={generalFeedback}
             onChange={(e) => setGeneralFeedback(e.target.value)}
-            placeholder="Espacio de dictamen oficial del jurado... Puedes redactar libremente o pulsar los botones de arriba para que el Asistente IA formule un análisis extenso, riguroso y completamente desarrollado para el acta académica de la UACh."
-            className="w-full min-h-[300px] sm:min-h-[400px] rounded-2xl glass-input p-4 sm:p-5 text-xs sm:text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none resize-y leading-relaxed font-sans shadow-inner"
+            placeholder="Escribe tus notas u observaciones aquí... Luego pulsa 'Mejorar Redacción' para perfeccionar formalmente el texto, o 'Formular Preguntas' para generar preguntas clave para el equipo durante su defensa."
+            className="w-full min-h-[300px] sm:min-h-[380px] rounded-2xl glass-input p-4 sm:p-5 text-xs sm:text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none resize-y leading-relaxed font-sans shadow-inner"
           />
           {isGeneratingAI && (
             <div className="absolute inset-0 bg-white/85 backdrop-blur-sm rounded-2xl flex flex-col items-center justify-center gap-3 text-xs sm:text-sm font-semibold text-slate-800">
               <SparklesIcon size={24} className="animate-spin text-purple-600" />
-              <span>Sintetizando análisis directivo extenso con Gemini AI...</span>
+              <span>Procesando asistencia para el evaluador con Gemini AI...</span>
             </div>
           )}
         </div>
@@ -676,14 +651,6 @@ export const StandEvaluationForm: React.FC<StandEvaluationFormProps> = ({
         standName={stand.project_name}
         category={stand.category}
         onClose={() => setIsLightboxOpen(false)}
-      />
-
-      <StandQRCodeModal
-        isOpen={isQROpen}
-        standId={stand.id}
-        standNumber={Number(stand.stand_number)}
-        standName={stand.project_name}
-        onClose={() => setIsQROpen(false)}
       />
     </div>
   );
