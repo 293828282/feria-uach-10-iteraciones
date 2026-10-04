@@ -79,7 +79,7 @@ export const TiltStandCard: React.FC<TiltStandCardProps> = ({
         transform: `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg)`,
         transition: 'transform 0.18s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s ease',
       }}
-      className="squircle-card relative overflow-hidden flex flex-col justify-between group shadow-velvet hover:shadow-velvet-lg will-change-transform"
+      className="squircle-card relative overflow-hidden flex flex-col justify-between group shadow-velvet hover:shadow-velvet-lg will-change-transform touch-pan-y"
     >
       {/* Dynamic Specular Glare Layer */}
       <div
@@ -104,13 +104,13 @@ export const TiltStandCard: React.FC<TiltStandCardProps> = ({
           {/* Luminous Gradient Overlay */}
           <div className="absolute inset-0 bg-gradient-to-t from-white via-white/20 to-transparent opacity-85 pointer-events-none" />
 
-          {/* Badges on image */}
+          {/* Top Badges and Actions */}
           <div className="absolute top-3 left-3 right-3 flex items-center justify-between z-10">
-            <span className="rounded-full bg-white/95 border border-sky-300/80 px-3 py-1 text-xs font-mono font-bold text-sky-800 backdrop-blur-md shadow-sm tabular-nums">
+            <span className="rounded-full bg-white/95 border border-sky-300/80 px-2.5 sm:px-3 py-1 text-xs font-mono font-bold text-sky-800 backdrop-blur-md shadow-sm tabular-nums">
               STAND #{stand.stand_number}
             </span>
 
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-1 sm:gap-1.5">
               {onOpenSheet && (
                 <button
                   type="button"
@@ -121,7 +121,7 @@ export const TiltStandCard: React.FC<TiltStandCardProps> = ({
                   title="Ver ficha técnica"
                   className="p-1.5 rounded-full bg-white/90 hover:bg-white text-slate-700 border border-slate-200/80 shadow-xs backdrop-blur-md transition-colors"
                 >
-                  <ClipboardCheckIcon size={13} />
+                  <ClipboardCheckIcon size={14} />
                 </button>
               )}
 
@@ -135,7 +135,7 @@ export const TiltStandCard: React.FC<TiltStandCardProps> = ({
                   title="Ver lámina ampliada"
                   className="p-1.5 rounded-full bg-white/90 hover:bg-white text-slate-700 border border-slate-200/80 shadow-xs backdrop-blur-md transition-colors"
                 >
-                  <EyeExpandIcon size={13} />
+                  <EyeExpandIcon size={14} />
                 </button>
               )}
 
@@ -149,32 +149,33 @@ export const TiltStandCard: React.FC<TiltStandCardProps> = ({
                   title="Generar código QR"
                   className="p-1.5 rounded-full bg-white/90 hover:bg-white text-slate-700 border border-slate-200/80 shadow-xs backdrop-blur-md transition-colors"
                 >
-                  <QRIcon size={13} />
+                  <QRIcon size={14} />
                 </button>
               )}
-
-              {isEvaluated ? (
-                <span className="inline-flex items-center gap-1 rounded-full bg-purple-100/95 border border-purple-300 px-3 py-1 text-[11px] font-semibold text-purple-800 backdrop-blur-md shadow-sm tabular-nums">
-                  <CheckIcon size={13} className="text-purple-700" />
-                  Calificado ({judgeAvg.toFixed(1)})
-                </span>
-              ) : (
-                <span className="rounded-full bg-white/90 border border-slate-300 px-3 py-1 text-[11px] font-medium text-slate-600 backdrop-blur-md shadow-sm">
-                  Pendiente
-                </span>
-              )}
             </div>
+          </div>
+
+          {/* Bottom Badges on Image (Status & Category) */}
+          <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between z-10">
+            {isEvaluated ? (
+              <span className="inline-flex items-center gap-1 rounded-full bg-purple-100/95 border border-purple-300 px-2.5 py-0.5 text-[11px] font-semibold text-purple-900 backdrop-blur-md shadow-sm tabular-nums">
+                <CheckIcon size={12} className="text-purple-700" />
+                Calificado ({judgeAvg.toFixed(1)})
+              </span>
+            ) : (
+              <span className="rounded-full bg-white/95 border border-slate-300 px-2.5 py-0.5 text-[11px] font-medium text-slate-600 backdrop-blur-md shadow-sm">
+                Pendiente
+              </span>
+            )}
+
+            <span className="inline-block rounded-full bg-white/95 border border-purple-200 px-2.5 py-0.5 text-[10px] text-purple-800 font-semibold uppercase tracking-wider backdrop-blur-md shadow-xs">
+              {stand.category || 'General'}
+            </span>
           </div>
         </div>
 
         {/* Card Body */}
-        <div className="p-5 sm:p-6">
-          <div className="flex items-center gap-1.5 mb-2.5">
-            <LightbulbIdeaIcon size={14} className="text-purple-600 flex-shrink-0" />
-            <span className="inline-block rounded-md bg-purple-50 border border-purple-200 px-2 py-0.5 text-[10px] text-purple-700 font-semibold uppercase tracking-wider">
-              {stand.category || 'General'}
-            </span>
-          </div>
+        <div className="p-4 sm:p-6">
 
           <h3 className="text-base sm:text-lg font-bold text-slate-900 mb-1.5 leading-snug group-hover:text-sky-700 transition-colors font-serif">
             {stand.project_name}

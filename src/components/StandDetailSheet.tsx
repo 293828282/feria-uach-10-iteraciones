@@ -199,7 +199,7 @@ export const StandDetailSheet: React.FC<StandDetailSheetProps> = ({
         </div>
 
         {/* Bottom Drawer Actions */}
-        <div className="p-6 border-t border-slate-200/80 bg-white/90 backdrop-blur-md flex items-center gap-3">
+        <div className="p-4 sm:p-6 pb-[calc(env(safe-area-inset-bottom,0px)+16px)] border-t border-slate-200/80 bg-white/90 backdrop-blur-md flex items-center gap-3">
           <button
             onClick={onClose}
             className="btn-light-gray flex-1 py-3 text-xs font-semibold rounded-2xl"

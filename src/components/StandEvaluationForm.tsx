@@ -261,11 +261,11 @@ export const StandEvaluationForm: React.FC<StandEvaluationFormProps> = ({
   return (
     <div className="max-w-4xl mx-auto space-y-6 pb-28 animate-fade-in">
       {/* Top Bar with Back, Fast Stand Switcher & Summary */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-sky-200/60 pb-4">
-        <div className="flex items-center gap-2 flex-wrap">
+      <div className="space-y-3 border-b border-sky-200/60 pb-3">
+        <div className="flex items-center justify-between gap-2 flex-wrap">
           <RippleButton
             onClick={onBack}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold rounded-xl"
+            className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-xl"
           >
             <ChevronLeftIcon size={18} />
             <span className="hidden sm:inline">Volver al catálogo</span>
@@ -274,7 +274,7 @@ export const StandEvaluationForm: React.FC<StandEvaluationFormProps> = ({
 
           {/* Quick Stand Jump Controls */}
           {allStands.length > 1 && onSelectStand && (
-            <div className="flex items-center gap-1 bg-white/70 rounded-xl p-1 border border-slate-200 shadow-xs">
+            <div className="flex items-center gap-1 bg-white/80 rounded-xl p-1 border border-slate-200 shadow-xs">
               <button
                 type="button"
                 onClick={() => prevStand && onSelectStand(prevStand)}
@@ -298,14 +298,23 @@ export const StandEvaluationForm: React.FC<StandEvaluationFormProps> = ({
               </button>
             </div>
           )}
+
+          <div className="rounded-xl glass-panel px-3 py-1 text-right border border-white/90 shadow-sm flex items-center gap-2">
+            <span className="text-[10px] uppercase font-mono text-sky-800 font-semibold">
+              Ponderado
+            </span>
+            <span className="text-base sm:text-lg font-bold font-mono tabular-nums text-slate-900">
+              {currentAverage.toFixed(2)}
+            </span>
+          </div>
         </div>
 
         {/* Dynamic Tool Buttons (Timer & Radar) */}
-        <div className="flex items-center gap-2 flex-wrap">
+        <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center sm:justify-end">
           <RippleButton
             onClick={() => setShowTimer(!showTimer)}
             isActive={showTimer}
-            className="px-3 py-2 text-xs font-semibold rounded-xl"
+            className="w-full sm:w-auto px-3 py-2 text-xs font-semibold rounded-xl flex items-center justify-center gap-1.5"
           >
             <StopwatchIcon size={15} className="text-sky-700" />
             <span>{showTimer ? 'Cerrar Cronómetro' : 'Cronómetro Pitch'}</span>
@@ -314,20 +323,11 @@ export const StandEvaluationForm: React.FC<StandEvaluationFormProps> = ({
           <RippleButton
             onClick={() => setShowRadar(!showRadar)}
             isActive={showRadar}
-            className="px-3 py-2 text-xs font-semibold rounded-xl"
+            className="w-full sm:w-auto px-3 py-2 text-xs font-semibold rounded-xl flex items-center justify-center gap-1.5"
           >
             <RadarChartIcon size={15} className="text-sky-700" />
             <span>{showRadar ? 'Ocultar Radar' : 'Matriz Radar'}</span>
           </RippleButton>
-
-          <div className="rounded-2xl glass-panel px-3 py-1.5 text-right border border-white/90 shadow-sm">
-            <span className="block text-[9.5px] uppercase font-mono text-sky-800 font-semibold">
-              Ponderado
-            </span>
-            <span className="block text-lg font-bold font-mono tabular-nums text-slate-900">
-              {currentAverage.toFixed(2)}
-            </span>
-          </div>
         </div>
       </div>
 
@@ -483,9 +483,9 @@ export const StandEvaluationForm: React.FC<StandEvaluationFormProps> = ({
                 </p>
               )}
 
-              {/* Fast Touch Ripple Selector (1 to 7) & Decimal Precision Slider */}
+              {/* Fast Touch Ripple Selector (1 to 7) & Clean Finger Touch Slider */}
               <div className="pl-0 sm:pl-10 pt-1 space-y-3">
-                <div className="grid grid-cols-7 gap-1.5 sm:gap-2.5 max-w-md">
+                <div className="grid grid-cols-7 gap-1 sm:gap-2.5 max-w-md">
                   {scaleNumbers.map((num) => {
                     const isNumSelected = Math.round(selectedScore) === num && selectedScore > 0;
                     return (
@@ -494,7 +494,7 @@ export const StandEvaluationForm: React.FC<StandEvaluationFormProps> = ({
                         type="button"
                         onClick={() => handleScoreChange(crit.id, num)}
                         isActive={isNumSelected}
-                        className={`h-11 rounded-xl font-mono text-sm sm:text-base font-bold transition-all tabular-nums ${
+                        className={`h-10 sm:h-11 rounded-xl font-mono text-sm sm:text-base font-bold transition-all tabular-nums p-0 flex items-center justify-center ${
                           isNumSelected ? 'text-base sm:text-lg scale-105 shadow-md' : ''
                         }`}
                       >
@@ -504,55 +504,23 @@ export const StandEvaluationForm: React.FC<StandEvaluationFormProps> = ({
                   })}
                 </div>
 
-                {/* Decimal Fine-Tuning Slider + Micro-stepper */}
-                <div className="bg-white/60 p-2.5 rounded-2xl border border-slate-200/80 max-w-md space-y-2">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-[11px] font-medium text-slate-600">
-                      Ajuste fino decimal:
+                {/* Finger touch range bar (sin textos distractores) */}
+                <div className="pt-1 pb-1 max-w-md">
+                  <div className="flex items-center gap-3 bg-white/70 px-3 py-2 rounded-2xl border border-slate-200/80 shadow-xs">
+                    <span className="text-xs font-mono font-bold text-slate-500">1.0</span>
+                    <input
+                      type="range"
+                      min="1.0"
+                      max="7.0"
+                      step="0.1"
+                      value={selectedScore > 0 ? selectedScore : 4.0}
+                      onChange={(e) => handleScoreChange(crit.id, parseFloat(e.target.value))}
+                      className="w-full h-3 bg-slate-200 rounded-full appearance-none cursor-pointer accent-purple-600 touch-none"
+                    />
+                    <span className="text-xs font-mono font-bold text-slate-500">7.0</span>
+                    <span className="min-w-[44px] text-center font-mono font-bold text-xs px-2 py-1 rounded-xl bg-purple-100 text-purple-900 border border-purple-200 tabular-nums shadow-xs flex-shrink-0">
+                      {selectedScore > 0 ? selectedScore.toFixed(1) : '4.0'}
                     </span>
-                    <div className="flex items-center gap-1.5">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const current = selectedScore || 4.0;
-                          const next = Math.max(1.0, Math.round((current - 0.1) * 10) / 10);
-                          handleScoreChange(crit.id, next);
-                        }}
-                        className="px-2 py-0.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-mono font-bold transition-colors"
-                        title="Disminuir 0.1"
-                      >
-                        -0.1
-                      </button>
-                      <span className="min-w-[44px] text-center font-mono font-bold text-xs px-2 py-0.5 rounded-lg bg-purple-100 text-purple-900 border border-purple-200 tabular-nums">
-                        {selectedScore > 0 ? selectedScore.toFixed(1) : '—'}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const current = selectedScore || 4.0;
-                          const next = Math.min(7.0, Math.round((current + 0.1) * 10) / 10);
-                          handleScoreChange(crit.id, next);
-                        }}
-                        className="px-2 py-0.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-mono font-bold transition-colors"
-                        title="Aumentar 0.1"
-                      >
-                        +0.1
-                      </button>
-                    </div>
-                  </div>
-                  <input
-                    type="range"
-                    min="1.0"
-                    max="7.0"
-                    step="0.1"
-                    value={selectedScore > 0 ? selectedScore : 4.0}
-                    onChange={(e) => handleScoreChange(crit.id, parseFloat(e.target.value))}
-                    className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-purple-600"
-                  />
-                  <div className="flex justify-between px-0.5 text-[9.5px] text-slate-400 font-mono">
-                    <span>1.0 Deficiente</span>
-                    <span>4.0 Aceptable</span>
-                    <span>7.0 Sobresaliente</span>
                   </div>
                 </div>
               </div>
@@ -562,15 +530,15 @@ export const StandEvaluationForm: React.FC<StandEvaluationFormProps> = ({
       </div>
 
       {/* Qualitative Feedback Card with Gemini AI Multi-Mode Integration */}
-      <div className="squircle-card p-6 sm:p-7 space-y-4 border border-white/90 shadow-velvet">
+      <div className="squircle-card p-5 sm:p-7 space-y-4 border border-white/90 shadow-velvet">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
-            <label htmlFor="eval-feedback" className="block text-xs font-bold text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
-              <QuotesIcon size={14} className="text-sky-700" />
-              <span>Devolución Cualitativa y Asistente Académico IA</span>
+            <label htmlFor="eval-feedback" className="block text-xs sm:text-sm font-bold text-slate-900 uppercase tracking-wider flex items-center gap-1.5 font-serif">
+              <QuotesIcon size={16} className="text-sky-700" />
+              <span>Dictamen Académico Oficial y Diagnóstico FODA IA</span>
             </label>
-            <p className="text-[11px] text-slate-600">
-              Comentarios formales para el acta de evaluación y dictamen oficial de la UACh.
+            <p className="text-[11px] text-slate-600 mt-0.5">
+              Evaluación cualitativa exhaustiva, preguntas de defensa y dictamen directivo (UACh Sede Puerto Montt).
             </p>
           </div>
 
@@ -583,11 +551,11 @@ export const StandEvaluationForm: React.FC<StandEvaluationFormProps> = ({
                 handleGenerateAIFeedback('feedback');
               }}
               disabled={isGeneratingAI}
-              className={`text-[11px] px-3 py-1.5 rounded-xl font-medium transition-all ${
+              className={`text-xs px-3 sm:px-3.5 py-1.5 sm:py-2 rounded-xl font-semibold transition-all ${
                 aiMode === 'feedback' ? 'btn-light-gray-active' : 'btn-light-gray'
               }`}
             >
-              Dictamen
+              Dictamen Extenso
             </button>
             <button
               type="button"
@@ -596,7 +564,7 @@ export const StandEvaluationForm: React.FC<StandEvaluationFormProps> = ({
                 handleGenerateAIFeedback('defense_questions');
               }}
               disabled={isGeneratingAI}
-              className={`text-[11px] px-3 py-1.5 rounded-xl font-medium transition-all ${
+              className={`text-xs px-3 sm:px-3.5 py-1.5 sm:py-2 rounded-xl font-semibold transition-all ${
                 aiMode === 'defense_questions' ? 'btn-light-gray-active' : 'btn-light-gray'
               }`}
             >
@@ -609,49 +577,73 @@ export const StandEvaluationForm: React.FC<StandEvaluationFormProps> = ({
                 handleGenerateAIFeedback('swot_brief');
               }}
               disabled={isGeneratingAI}
-              className={`text-[11px] px-3 py-1.5 rounded-xl font-medium transition-all ${
+              className={`text-xs px-3 sm:px-3.5 py-1.5 sm:py-2 rounded-xl font-semibold transition-all ${
                 aiMode === 'swot_brief' ? 'btn-light-gray-active' : 'btn-light-gray'
               }`}
             >
-              FODA Breve
+              FODA Completo
             </button>
           </div>
         </div>
 
         {aiNotice && (
-          <div className="rounded-xl border border-sky-300 bg-sky-50 px-3.5 py-2 text-xs text-sky-800 font-medium animate-fade-in">
-            {aiNotice}
+          <div className="rounded-xl border border-sky-300 bg-sky-50 px-3.5 py-2 text-xs text-sky-800 font-medium animate-fade-in flex items-center justify-between gap-2">
+            <span>{aiNotice}</span>
+            <button
+              type="button"
+              onClick={() => setAiNotice(null)}
+              className="text-slate-400 hover:text-slate-700 text-xs font-bold"
+            >
+              &times;
+            </button>
           </div>
         )}
 
+        {/* Enlarged Textarea for Fully Developed Long Form Dictamen */}
         <div className="relative">
           <textarea
             id="eval-feedback"
-            rows={5}
+            rows={12}
             value={generalFeedback}
             onChange={(e) => setGeneralFeedback(e.target.value)}
-            placeholder="Escribe aquí las observaciones o pulsa uno de los modos del Asistente IA para generar una propuesta académica estructurada..."
-            className="w-full rounded-2xl glass-input px-4 py-3 text-xs sm:text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none resize-y leading-relaxed font-sans"
+            placeholder="Espacio de dictamen oficial del jurado... Puedes redactar libremente o pulsar los botones de arriba para que el Asistente IA formule un análisis extenso, riguroso y completamente desarrollado para el acta académica de la UACh."
+            className="w-full min-h-[300px] sm:min-h-[400px] rounded-2xl glass-input p-4 sm:p-5 text-xs sm:text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none resize-y leading-relaxed font-sans shadow-inner"
           />
           {isGeneratingAI && (
-            <div className="absolute inset-0 bg-white/70 backdrop-blur-sm rounded-2xl flex items-center justify-center gap-2 text-xs font-semibold text-slate-800">
-              <SparklesIcon size={18} className="animate-spin text-purple-600" />
-              <span>Sintetizando con Gemini 2.5 Flash IA...</span>
+            <div className="absolute inset-0 bg-white/85 backdrop-blur-sm rounded-2xl flex flex-col items-center justify-center gap-3 text-xs sm:text-sm font-semibold text-slate-800">
+              <SparklesIcon size={24} className="animate-spin text-purple-600" />
+              <span>Sintetizando análisis directivo extenso con Gemini AI...</span>
             </div>
           )}
         </div>
+
+        {generalFeedback && (
+          <div className="flex items-center justify-between text-[11px] text-slate-500 pt-1">
+            <span>{generalFeedback.length} caracteres redactados</span>
+            <button
+              type="button"
+              onClick={() => {
+                navigator.clipboard.writeText(generalFeedback);
+                setAiNotice('Dictamen copiado al portapapeles');
+              }}
+              className="text-purple-700 hover:text-purple-900 font-semibold"
+            >
+              Copiar al portapapeles
+            </button>
+          </div>
+        )}
       </div>
 
-      {/* Bottom Sticky Action Bar with Ripple Buttons */}
-      <div className="sticky bottom-4 z-30 squircle-card p-4 flex items-center justify-between shadow-velvet-lg border border-white/95">
+      {/* Bottom Sticky Action Bar with Ripple Buttons (Elevated on mobile to prevent overlap with MobileBottomNav) */}
+      <div className="sticky bottom-[calc(env(safe-area-inset-bottom,0px)+72px)] md:bottom-4 z-30 squircle-card p-3.5 sm:p-4 flex items-center justify-between shadow-velvet-lg border border-white/95">
         <div>
           <span className="block text-[11px] font-mono text-slate-500">
-            Promedio: <strong className="text-slate-900 font-bold font-mono text-base tabular-nums">{currentAverage.toFixed(2)}</strong>
+            Promedio: <strong className="text-slate-900 font-bold font-mono text-sm sm:text-base tabular-nums">{currentAverage.toFixed(2)}</strong>
           </span>
           <span className="text-[10px] text-slate-500 tabular-nums">
             {answeredCount === totalCount
               ? 'Todos los criterios calificados'
-              : `Faltan ${totalCount - answeredCount} criterios por responder`}
+              : `Faltan ${totalCount - answeredCount} criterios`}
           </span>
         </div>
 
@@ -672,7 +664,7 @@ export const StandEvaluationForm: React.FC<StandEvaluationFormProps> = ({
             className="flex items-center gap-1.5 sm:gap-2 rounded-xl px-4 sm:px-6 py-2 sm:py-2.5 text-xs font-bold disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
           >
             <SaveIcon size={16} />
-            <span>{isSaving ? 'Guardando...' : 'Registrar Evaluación'}</span>
+            <span>{isSaving ? 'Guardando...' : 'Registrar'}</span>
           </RippleButton>
         </div>
       </div>

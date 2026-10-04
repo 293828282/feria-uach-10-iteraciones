@@ -88,8 +88,8 @@ export const Navbar: React.FC<NavbarProps> = ({
             {isMuted ? <SoundMuteIcon size={16} /> : <SoundHighIcon size={16} />}
           </button>
 
-          {/* Active View Selector Island (Jueces / Podio / Admin) */}
-          <div className="flex items-center rounded-2xl border border-slate-300/80 bg-white/80 p-1 shadow-sm">
+          {/* Active View Selector Island (Visible on desktop; Mobile uses MobileBottomNav) */}
+          <div className="hidden sm:flex items-center rounded-2xl border border-slate-300/80 bg-white/80 p-1 shadow-sm">
             <RippleButton
               onClick={() => setActiveView('judge')}
               isActive={activeView === 'judge'}
@@ -124,16 +124,16 @@ export const Navbar: React.FC<NavbarProps> = ({
             </RippleButton>
           </div>
 
-          {/* Current Judge Indicator in Judge Mode */}
+          {/* Current Judge Indicator */}
           {activeView === 'judge' && (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 sm:gap-2">
               {currentJudge ? (
-                <div className="flex items-center gap-2 rounded-2xl border border-slate-300/80 bg-white/90 px-2.5 sm:px-3 py-1.5 shadow-sm">
-                  <div className="text-left hidden md:block">
-                    <span className="block text-[10px] uppercase font-mono text-purple-700 font-semibold">
+                <div className="flex items-center gap-1.5 sm:gap-2 rounded-2xl border border-slate-300/80 bg-white/90 px-2 sm:px-3 py-1 sm:py-1.5 shadow-sm">
+                  <div className="text-left">
+                    <span className="block text-[9px] sm:text-[10px] uppercase font-mono text-purple-700 font-semibold leading-none">
                       Juez Activo
                     </span>
-                    <span className="block text-xs font-bold text-slate-800 truncate max-w-[130px]">
+                    <span className="block text-[11px] sm:text-xs font-bold text-slate-800 truncate max-w-[85px] sm:max-w-[130px]">
                       {currentJudge.full_name}
                     </span>
                   </div>
@@ -142,16 +142,15 @@ export const Navbar: React.FC<NavbarProps> = ({
                     title="Cambiar Juez"
                     className="rounded-lg p-1 text-slate-500 hover:text-purple-700"
                   >
-                    <LogoutIcon size={15} />
+                    <LogoutIcon size={14} />
                   </RippleButton>
                 </div>
               ) : (
                 <RippleButton
                   onClick={onOpenJudgeSelector}
-                  className="rounded-2xl px-3 sm:px-3.5 py-1.5 text-xs font-semibold"
+                  className="rounded-2xl px-2.5 sm:px-3.5 py-1.5 text-xs font-semibold"
                 >
-                  <span className="hidden sm:inline">Seleccionar Juez</span>
-                  <span className="sm:hidden">Juez</span>
+                  <span>Elegir Juez</span>
                 </RippleButton>
               )}
             </div>

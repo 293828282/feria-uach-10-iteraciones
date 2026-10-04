@@ -207,7 +207,7 @@ export default function Home() {
     return map;
   }, [criteria, evaluations]);
 
-  // Filtered stands (Search + Category + Status)
+  // Filtered stands (Search + Status) - Sin filtro limitante de categorías
   const filteredStands = useMemo(() => {
     return activeStands.filter((s) => {
       const query = searchQuery.toLowerCase();
@@ -215,8 +215,6 @@ export default function Home() {
         s.project_name.toLowerCase().includes(query) ||
         s.stand_number.toLowerCase().includes(query) ||
         (s.team_members && s.team_members.toLowerCase().includes(query));
-
-      const matchesCat = selectedCategory === 'Todas' || s.category === selectedCategory;
 
       const standEvals = judgeEvaluationsMap.get(s.id) || [];
       const isCompleted = standEvals.length >= criteria.length && criteria.length > 0;
@@ -228,9 +226,9 @@ export default function Home() {
         matchesStatus = isCompleted;
       }
 
-      return matchesSearch && matchesCat && matchesStatus;
+      return matchesSearch && matchesStatus;
     });
-  }, [activeStands, searchQuery, selectedCategory, selectedStatus, judgeEvaluationsMap, criteria.length]);
+  }, [activeStands, searchQuery, selectedStatus, judgeEvaluationsMap, criteria.length]);
 
   // Stand rankings for Admin & Podium
   const standRankings: StandEvaluationSummary[] = useMemo(() => {
@@ -319,8 +317,8 @@ export default function Home() {
         setActiveView={setActiveView}
       />
 
-      {/* Main Content Area */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 flex-1 w-full">
+      {/* Main Content Area (Optimizado para teléfonos con espacio inferior para MobileBottomNav) */}
+      <main className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-8 pb-36 sm:pb-16 flex-1 w-full">
         {errorMsg && (
           <div className="mb-6 rounded-2xl border border-red-500/40 bg-red-50 px-4 py-3 text-xs text-red-700">
             {errorMsg}
@@ -389,88 +387,62 @@ export default function Home() {
                   </div>
                 )}
 
-                {/* Filter and Search Bar with Instant Clear & Status Tabs */}
-                <div className="space-y-3">
-                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-                    <div className="relative flex-1 max-w-md">
-                      <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4 text-sky-600">
-                        <SearchIcon size={16} />
-                      </div>
-                      <input
-                        ref={searchInputRef}
-                        type="text"
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        placeholder="Buscar stand, proyecto o integrantes (Presiona '/' para buscar)..."
-                        className="w-full rounded-2xl glass-input pl-11 pr-10 py-2.5 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-sky-400"
-                      />
-                      {searchQuery && (
-                        <button
-                          onClick={() => setSearchQuery('')}
-                          className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600"
-                        >
-                          <CloseIcon size={16} />
-                        </button>
-                      )}
+                {/* Search Bar & Status Filter Tabs (Diseño adaptable a teléfono y escritorio) */}
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+                  <div className="relative flex-1">
+                    <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4 text-sky-600">
+                      <SearchIcon size={16} />
                     </div>
-
-                    {/* Status Filter Pills */}
-                    <div className="flex items-center gap-1.5 bg-white/70 p-1 rounded-2xl border border-slate-200/80 shadow-xs">
+                    <input
+                      ref={searchInputRef}
+                      type="text"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder="Buscar por stand, proyecto o autor (Presiona '/' para buscar)..."
+                      className="w-full rounded-2xl glass-input pl-11 pr-10 py-3 text-xs sm:text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-sky-400 shadow-xs"
+                    />
+                    {searchQuery && (
                       <button
-                        onClick={() => setSelectedStatus('all')}
-                        className={`text-xs px-3 py-1.5 rounded-xl font-semibold transition-all ${
-                          selectedStatus === 'all'
-                            ? 'bg-slate-900 text-white shadow-xs'
-                            : 'text-slate-600 hover:text-slate-900'
-                        }`}
+                        onClick={() => setSearchQuery('')}
+                        className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-600"
                       >
-                        Todos ({activeStands.length})
+                        <CloseIcon size={16} />
                       </button>
-                      <button
-                        onClick={() => setSelectedStatus('pending')}
-                        className={`text-xs px-3 py-1.5 rounded-xl font-semibold transition-all ${
-                          selectedStatus === 'pending'
-                            ? 'bg-slate-900 text-white shadow-xs'
-                            : 'text-slate-600 hover:text-slate-900'
-                        }`}
-                      >
-                        Pendientes ({activeStands.length - judgeCompletedCount})
-                      </button>
-                      <button
-                        onClick={() => setSelectedStatus('completed')}
-                        className={`text-xs px-3 py-1.5 rounded-xl font-semibold transition-all ${
-                          selectedStatus === 'completed'
-                            ? 'bg-slate-900 text-white shadow-xs'
-                            : 'text-slate-600 hover:text-slate-900'
-                        }`}
-                      >
-                        Listos ({judgeCompletedCount})
-                      </button>
-                    </div>
+                    )}
                   </div>
 
-                  {/* Horizontal Scrollable Categories Carousel */}
-                  <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none snap-x">
-                    <span className="text-xs text-slate-600 flex items-center gap-1 font-medium whitespace-nowrap">
-                      <FilterIcon size={13} />
-                      Categoría:
-                    </span>
-                    {categories.map((cat) => {
-                      const count =
-                        cat === 'Todas'
-                          ? activeStands.length
-                          : activeStands.filter((s) => s.category === cat).length;
-                      return (
-                        <RippleButton
-                          key={cat}
-                          onClick={() => setSelectedCategory(cat)}
-                          isActive={selectedCategory === cat}
-                          className="px-3 py-1.5 text-xs font-semibold whitespace-nowrap rounded-xl snap-start"
-                        >
-                          {cat} ({count})
-                        </RippleButton>
-                      );
-                    })}
+                  {/* Status Filter Tabs (Grid adaptada a celulares) */}
+                  <div className="grid grid-cols-3 sm:flex items-center gap-1 bg-white/80 p-1 rounded-2xl border border-slate-200/80 shadow-xs">
+                    <button
+                      onClick={() => setSelectedStatus('all')}
+                      className={`text-xs px-2.5 sm:px-3 py-2 rounded-xl font-semibold transition-all text-center ${
+                        selectedStatus === 'all'
+                          ? 'bg-slate-900 text-white shadow-xs'
+                          : 'text-slate-600 hover:text-slate-900'
+                      }`}
+                    >
+                      Todos ({activeStands.length})
+                    </button>
+                    <button
+                      onClick={() => setSelectedStatus('pending')}
+                      className={`text-xs px-2.5 sm:px-3 py-2 rounded-xl font-semibold transition-all text-center ${
+                        selectedStatus === 'pending'
+                          ? 'bg-slate-900 text-white shadow-xs'
+                          : 'text-slate-600 hover:text-slate-900'
+                      }`}
+                    >
+                      Pendientes ({activeStands.length - judgeCompletedCount})
+                    </button>
+                    <button
+                      onClick={() => setSelectedStatus('completed')}
+                      className={`text-xs px-2.5 sm:px-3 py-2 rounded-xl font-semibold transition-all text-center ${
+                        selectedStatus === 'completed'
+                          ? 'bg-slate-900 text-white shadow-xs'
+                          : 'text-slate-600 hover:text-slate-900'
+                      }`}
+                    >
+                      Listos ({judgeCompletedCount})
+                    </button>
                   </div>
                 </div>
 
