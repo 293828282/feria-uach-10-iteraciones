@@ -4,13 +4,10 @@ import { CelestialAuroraCanvas } from '@/components/CelestialAuroraCanvas';
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://feria-uach-10-iteraciones.vercel.app'),
-  title: {
-    default: 'Feria de Emprendimiento UACh 2026 | Sistema Oficial de Evaluación',
-    template: '%s | Feria UACh 2026',
-  },
+  title: 'Feria de Emprendimiento UACh 2026',
   description:
-    'Plataforma institucional para la evaluación en tiempo real de stands y proyectos de emprendimiento. Universidad Austral de Chile • Sede Puerto Montt, Región de Los Lagos.',
-  applicationName: 'Feria Emprendimiento UACh 2026',
+    'Pauta oficial de jurados y catálogo de stands. Universidad Austral de Chile - Sede Puerto Montt.',
+  applicationName: 'Feria UACh 2026',
   authors: [{ name: 'Universidad Austral de Chile - Sede Puerto Montt' }],
   creator: 'Universidad Austral de Chile',
   publisher: 'Escuela de Graduados - FACEA UACh',
@@ -22,7 +19,6 @@ export const metadata: Metadata = {
     'Evaluación de Jurados',
     'Innovación',
     'FACEA',
-    'Podio Oficial',
   ],
   icons: {
     icon: [
@@ -39,16 +35,25 @@ export const metadata: Metadata = {
     type: 'website',
     locale: 'es_CL',
     url: 'https://feria-uach-10-iteraciones.vercel.app',
-    siteName: 'Universidad Austral de Chile • Sede Puerto Montt',
-    title: 'Feria de Emprendimiento UACh 2026 | Sistema Oficial de Evaluación',
+    siteName: 'Universidad Austral de Chile',
+    title: 'Feria de Emprendimiento UACh 2026',
     description:
-      'Pauta oficial de jurados, catálogo interactivo de stands y determinación algorítmica del podio de ganadores. Sede Puerto Montt.',
+      'Pauta oficial de jurados y catálogo de stands. Universidad Austral de Chile - Sede Puerto Montt.',
+    images: [
+      {
+        url: '/og-image.png?v=4',
+        width: 1200,
+        height: 630,
+        alt: 'Feria de Emprendimiento UACh 2026',
+      },
+    ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Feria de Emprendimiento UACh 2026 | Sistema Oficial de Evaluación',
+    title: 'Feria de Emprendimiento UACh 2026',
     description:
-      'Pauta oficial de jurados, catálogo interactivo de stands y podio de ganadores • Universidad Austral de Chile, Sede Puerto Montt.',
+      'Pauta oficial de jurados y catálogo de stands. Universidad Austral de Chile - Sede Puerto Montt.',
+    images: ['/og-image.png?v=4'],
   },
 };
 
