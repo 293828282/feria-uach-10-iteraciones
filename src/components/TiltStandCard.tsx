@@ -3,7 +3,13 @@
 import React, { useState, useRef, MouseEvent } from 'react';
 import Image from 'next/image';
 import { Stand, EvaluationCriteria, Evaluation } from '@/types/database';
-import { CheckIcon, ChevronRightIcon, LightbulbIdeaIcon } from '@/components/ui/vectors';
+import {
+  CheckIcon,
+  ChevronRightIcon,
+  LightbulbIdeaIcon,
+  EyeExpandIcon,
+  QRIcon,
+} from '@/components/ui/vectors';
 import { RippleButton } from '@/components/ui/RippleButton';
 
 interface TiltStandCardProps {
@@ -14,6 +20,8 @@ interface TiltStandCardProps {
   isEvaluated: boolean;
   judgeAvg: number;
   onEvaluate: () => void;
+  onOpenImage?: (imageUrl: string, standName: string, category: string) => void;
+  onOpenQR?: (stand: Stand) => void;
 }
 
 export const TiltStandCard: React.FC<TiltStandCardProps> = ({
@@ -23,6 +31,8 @@ export const TiltStandCard: React.FC<TiltStandCardProps> = ({
   isEvaluated,
   judgeAvg,
   onEvaluate,
+  onOpenImage,
+  onOpenQR,
 }) => {
   const cardRef = useRef<HTMLDivElement | null>(null);
   const [rotateX, setRotateX] = useState(0);
@@ -85,27 +95,58 @@ export const TiltStandCard: React.FC<TiltStandCardProps> = ({
             alt={stand.project_name}
             fill
             unoptimized
-            className="object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
+            className="object-cover group-hover:scale-105 transition-transform duration-700 ease-out cursor-pointer"
+            onClick={() => onOpenImage && onOpenImage(standImg, stand.project_name, stand.category || 'General')}
           />
           {/* Luminous Gradient Overlay */}
-          <div className="absolute inset-0 bg-gradient-to-t from-white via-white/20 to-transparent opacity-85" />
+          <div className="absolute inset-0 bg-gradient-to-t from-white via-white/20 to-transparent opacity-85 pointer-events-none" />
 
           {/* Badges on image */}
           <div className="absolute top-3 left-3 right-3 flex items-center justify-between z-10">
-            <span className="rounded-full bg-white/95 border border-sky-300/80 px-3 py-1 text-xs font-mono font-bold text-sky-800 backdrop-blur-md shadow-sm">
+            <span className="rounded-full bg-white/95 border border-sky-300/80 px-3 py-1 text-xs font-mono font-bold text-sky-800 backdrop-blur-md shadow-sm tabular-nums">
               STAND #{stand.stand_number}
             </span>
 
-            {isEvaluated ? (
-              <span className="inline-flex items-center gap-1 rounded-full bg-purple-100/95 border border-purple-300 px-3 py-1 text-[11px] font-semibold text-purple-800 backdrop-blur-md shadow-sm">
-                <CheckIcon size={13} className="text-purple-700" />
-                Calificado ({judgeAvg.toFixed(1)})
-              </span>
-            ) : (
-              <span className="rounded-full bg-white/90 border border-slate-300 px-3 py-1 text-[11px] font-medium text-slate-600 backdrop-blur-md shadow-sm">
-                Pendiente
-              </span>
-            )}
+            <div className="flex items-center gap-1.5">
+              {onOpenImage && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onOpenImage(standImg, stand.project_name, stand.category || 'General');
+                  }}
+                  title="Ver lámina ampliada"
+                  className="p-1.5 rounded-full bg-white/90 hover:bg-white text-slate-700 border border-slate-200/80 shadow-xs backdrop-blur-md transition-colors"
+                >
+                  <EyeExpandIcon size={13} />
+                </button>
+              )}
+
+              {onOpenQR && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onOpenQR(stand);
+                  }}
+                  title="Generar código QR"
+                  className="p-1.5 rounded-full bg-white/90 hover:bg-white text-slate-700 border border-slate-200/80 shadow-xs backdrop-blur-md transition-colors"
+                >
+                  <QRIcon size={13} />
+                </button>
+              )}
+
+              {isEvaluated ? (
+                <span className="inline-flex items-center gap-1 rounded-full bg-purple-100/95 border border-purple-300 px-3 py-1 text-[11px] font-semibold text-purple-800 backdrop-blur-md shadow-sm tabular-nums">
+                  <CheckIcon size={13} className="text-purple-700" />
+                  Calificado ({judgeAvg.toFixed(1)})
+                </span>
+              ) : (
+                <span className="rounded-full bg-white/90 border border-slate-300 px-3 py-1 text-[11px] font-medium text-slate-600 backdrop-blur-md shadow-sm">
+                  Pendiente
+                </span>
+              )}
+            </div>
           </div>
         </div>
 
@@ -118,7 +159,7 @@ export const TiltStandCard: React.FC<TiltStandCardProps> = ({
             </span>
           </div>
 
-          <h3 className="text-base sm:text-lg font-bold text-slate-900 mb-1.5 leading-snug group-hover:text-sky-700 transition-colors">
+          <h3 className="text-base sm:text-lg font-bold text-slate-900 mb-1.5 leading-snug group-hover:text-sky-700 transition-colors font-serif">
             {stand.project_name}
           </h3>
 
@@ -130,7 +171,7 @@ export const TiltStandCard: React.FC<TiltStandCardProps> = ({
 
       {/* Card Footer with RippleButton */}
       <div className="p-5 sm:p-6 pt-0 flex items-center justify-between border-t border-slate-200/60 mt-2">
-        <span className="text-[11px] text-slate-500 font-mono">
+        <span className="text-[11px] text-slate-500 font-mono tabular-nums">
           {criteria.length} criterios oficiales
         </span>
 
@@ -139,7 +180,7 @@ export const TiltStandCard: React.FC<TiltStandCardProps> = ({
           isActive={isEvaluated}
           className="px-4 py-2 text-xs font-semibold rounded-xl"
         >
-          <span>{isEvaluated ? 'Modificar' : 'Evaluar Stand'}</span>
+          <span>{isEvaluated ? 'Editar Nota' : 'Evaluar Stand'}</span>
           <ChevronRightIcon size={14} />
         </RippleButton>
       </div>

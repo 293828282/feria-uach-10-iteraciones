@@ -12,16 +12,30 @@ import {
   RadarChartIcon,
   JudgeGavelIcon,
   TargetGoalIcon,
+  StopwatchIcon,
+  CloudCheckIcon,
+  ArrowRightCircleIcon,
+  ArrowLeftCircleIcon,
+  EyeExpandIcon,
+  QRIcon,
+  QuotesIcon,
 } from '@/components/ui/vectors';
 import { StandRadarChart } from '@/components/StandRadarChart';
 import { RippleButton } from '@/components/ui/RippleButton';
+import { PitchTimer } from '@/components/PitchTimer';
+import { StandImageLightbox } from '@/components/StandImageLightbox';
+import { StandQRCodeModal } from '@/components/StandQRCodeModal';
 import { fireEvaluationConfetti } from '@/lib/celebration';
+import { soundFX } from '@/lib/soundFx';
 
 interface StandEvaluationFormProps {
   stand: Stand;
   judge: Judge;
   criteria: EvaluationCriteria[];
   existingEvaluations: Evaluation[];
+  allStands?: Stand[];
+  cohortScores?: Record<string, number>;
+  onSelectStand?: (stand: Stand) => void;
   onBack: () => void;
   onEvaluationSaved: () => void;
 }
@@ -37,6 +51,9 @@ export const StandEvaluationForm: React.FC<StandEvaluationFormProps> = ({
   judge,
   criteria,
   existingEvaluations,
+  allStands = [],
+  cohortScores,
+  onSelectStand,
   onBack,
   onEvaluationSaved,
 }) => {
@@ -45,16 +62,25 @@ export const StandEvaluationForm: React.FC<StandEvaluationFormProps> = ({
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [lastAutoSavedTime, setLastAutoSavedTime] = useState<string | null>(null);
 
-  // Radar View Modal / Accordion
+  // Modals & Panels
   const [showRadar, setShowRadar] = useState(false);
+  const [showTimer, setShowTimer] = useState(false);
+  const [isLightboxOpen, setIsLightboxOpen] = useState(false);
+  const [isQROpen, setIsQROpen] = useState(false);
 
   // Gemini AI Assistant State
   const [isGeneratingAI, setIsGeneratingAI] = useState(false);
   const [aiMode, setAiMode] = useState<'feedback' | 'defense_questions' | 'swot_brief'>('feedback');
   const [aiNotice, setAiNotice] = useState<string | null>(null);
 
-  // Load existing evaluations
+  // Storage key for local auto-drafting
+  const draftStorageKey = useMemo(() => {
+    return `uach_draft_${judge.id}_${stand.id}`;
+  }, [judge.id, stand.id]);
+
+  // Load existing evaluations or restore local draft
   useEffect(() => {
     if (existingEvaluations && existingEvaluations.length > 0) {
       const initialScores: { [key: string]: number } = {};
@@ -71,11 +97,43 @@ export const StandEvaluationForm: React.FC<StandEvaluationFormProps> = ({
       if (initialFeedback) {
         setGeneralFeedback(initialFeedback);
       }
+    } else {
+      // Check local storage draft
+      try {
+        const savedDraft = localStorage.getItem(draftStorageKey);
+        if (savedDraft) {
+          const parsed = JSON.parse(savedDraft);
+          if (parsed && typeof parsed.scores === 'object') {
+            setScores(parsed.scores);
+            if (parsed.feedback) setGeneralFeedback(parsed.feedback);
+            setLastAutoSavedTime(new Date(parsed.updatedAt || Date.now()).toLocaleTimeString());
+          }
+        }
+      } catch {}
     }
-  }, [existingEvaluations]);
+  }, [existingEvaluations, draftStorageKey]);
+
+  // Autosave draft locally whenever scores or feedback change
+  useEffect(() => {
+    if (Object.keys(scores).length > 0 || generalFeedback) {
+      const timer = setTimeout(() => {
+        try {
+          const draftPayload = {
+            scores,
+            feedback: generalFeedback,
+            updatedAt: Date.now(),
+          };
+          localStorage.setItem(draftStorageKey, JSON.stringify(draftPayload));
+          setLastAutoSavedTime(new Date().toLocaleTimeString());
+        } catch {}
+      }, 800);
+      return () => clearTimeout(timer);
+    }
+  }, [scores, generalFeedback, draftStorageKey]);
 
   // Handle score change
   const handleScoreChange = (criteriaId: string, score: number) => {
+    soundFX.triggerHaptic(25);
     setScores((prev) => ({
       ...prev,
       [criteriaId]: score,
@@ -101,6 +159,14 @@ export const StandEvaluationForm: React.FC<StandEvaluationFormProps> = ({
 
     return totalWeight > 0 ? totalScore / totalWeight : 0;
   }, [criteria, scores]);
+
+  // Direct Stand Switcher Navigation (Previous / Next)
+  const currentStandIndex = useMemo(() => {
+    return allStands.findIndex((s) => s.id === stand.id);
+  }, [allStands, stand.id]);
+
+  const prevStand = currentStandIndex > 0 ? allStands[currentStandIndex - 1] : null;
+  const nextStand = currentStandIndex >= 0 && currentStandIndex < allStands.length - 1 ? allStands[currentStandIndex + 1] : null;
 
   // Trigger Gemini AI Assistant
   const handleGenerateAIFeedback = async (selectedMode: 'feedback' | 'defense_questions' | 'swot_brief' = aiMode) => {
@@ -168,7 +234,14 @@ export const StandEvaluationForm: React.FC<StandEvaluationFormProps> = ({
 
       if (error) throw error;
 
-      // Disparar celebración con confeti en paleta celeste-lila
+      // Clean local storage draft upon verified submission
+      try {
+        localStorage.removeItem(draftStorageKey);
+      } catch {}
+
+      // Play victory chime, haptics & confetti
+      soundFX.playScoreSubmitted();
+      soundFX.triggerHaptic([50, 50, 120, 60]);
       fireEvaluationConfetti();
 
       setSaveSuccess(true);
@@ -187,47 +260,85 @@ export const StandEvaluationForm: React.FC<StandEvaluationFormProps> = ({
 
   return (
     <div className="max-w-4xl mx-auto space-y-6 pb-28 animate-fade-in">
-      {/* Top Bar with Back & Summary */}
+      {/* Top Bar with Back, Fast Stand Switcher & Summary */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-sky-200/60 pb-4">
-        <RippleButton
-          onClick={onBack}
-          className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold rounded-xl"
-        >
-          <ChevronLeftIcon size={18} />
-          <span>Volver al catálogo de stands</span>
-        </RippleButton>
+        <div className="flex items-center gap-2 flex-wrap">
+          <RippleButton
+            onClick={onBack}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold rounded-xl"
+          >
+            <ChevronLeftIcon size={18} />
+            <span className="hidden sm:inline">Volver al catálogo</span>
+            <span className="sm:hidden">Catálogo</span>
+          </RippleButton>
 
-        <div className="flex items-center gap-3">
+          {/* Quick Stand Jump Controls */}
+          {allStands.length > 1 && onSelectStand && (
+            <div className="flex items-center gap-1 bg-white/70 rounded-xl p-1 border border-slate-200 shadow-xs">
+              <button
+                type="button"
+                onClick={() => prevStand && onSelectStand(prevStand)}
+                disabled={!prevStand}
+                title={prevStand ? `Ir a Stand #${prevStand.stand_number}` : 'Primer Stand'}
+                className="p-1 rounded-lg text-slate-600 hover:text-slate-900 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              >
+                <ArrowLeftCircleIcon size={18} />
+              </button>
+              <span className="text-[11px] font-mono font-bold text-slate-700 px-1.5">
+                {currentStandIndex + 1}/{allStands.length}
+              </span>
+              <button
+                type="button"
+                onClick={() => nextStand && onSelectStand(nextStand)}
+                disabled={!nextStand}
+                title={nextStand ? `Ir a Stand #${nextStand.stand_number}` : 'Último Stand'}
+                className="p-1 rounded-lg text-slate-600 hover:text-slate-900 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              >
+                <ArrowRightCircleIcon size={18} />
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Dynamic Tool Buttons (Timer & Radar) */}
+        <div className="flex items-center gap-2 flex-wrap">
+          <RippleButton
+            onClick={() => setShowTimer(!showTimer)}
+            isActive={showTimer}
+            className="px-3 py-2 text-xs font-semibold rounded-xl"
+          >
+            <StopwatchIcon size={15} className="text-sky-700" />
+            <span>{showTimer ? 'Cerrar Cronómetro' : 'Cronómetro Pitch'}</span>
+          </RippleButton>
+
           <RippleButton
             onClick={() => setShowRadar(!showRadar)}
             isActive={showRadar}
-            className="px-3.5 py-2 text-xs font-semibold rounded-xl"
+            className="px-3 py-2 text-xs font-semibold rounded-xl"
           >
-            <RadarChartIcon size={16} className="text-sky-700" />
-            <span>{showRadar ? 'Ocultar Radar' : 'Ver Matriz Radar'}</span>
+            <RadarChartIcon size={15} className="text-sky-700" />
+            <span>{showRadar ? 'Ocultar Radar' : 'Matriz Radar'}</span>
           </RippleButton>
 
-          <div className="rounded-2xl glass-panel px-4 py-2 text-right border border-white/90 shadow-sm">
-            <span className="block text-[10px] uppercase font-mono text-sky-800 font-semibold">
-              Promedio Ponderado
+          <div className="rounded-2xl glass-panel px-3 py-1.5 text-right border border-white/90 shadow-sm">
+            <span className="block text-[9.5px] uppercase font-mono text-sky-800 font-semibold">
+              Ponderado
             </span>
-            <span className="block text-xl font-bold font-mono tabular-nums text-slate-900">
-              {currentAverage.toFixed(2)} / 7.00
-            </span>
-          </div>
-
-          <div className="rounded-2xl glass-panel px-4 py-2 text-right border border-white/90 shadow-sm">
-            <span className="block text-[10px] uppercase font-mono text-purple-800 font-semibold">
-              Criterios
-            </span>
-            <span className="block text-xs font-bold text-slate-800">
-              {answeredCount} de {totalCount}
+            <span className="block text-lg font-bold font-mono tabular-nums text-slate-900">
+              {currentAverage.toFixed(2)}
             </span>
           </div>
         </div>
       </div>
 
-      {/* Stand Hero Card with Presentation Image */}
+      {/* Pitch & Defense Stopwatch Module (Collapsible) */}
+      {showTimer && (
+        <div className="animate-fade-in">
+          <PitchTimer standName={`Stand #${stand.stand_number}: ${stand.project_name}`} />
+        </div>
+      )}
+
+      {/* Stand Hero Card with Presentation Image & Actions */}
       <div className="relative rounded-3xl overflow-hidden glass-panel border border-white/90 shadow-velvet">
         <div className="relative h-60 sm:h-80 w-full bg-slate-100">
           <Image
@@ -239,19 +350,45 @@ export const StandEvaluationForm: React.FC<StandEvaluationFormProps> = ({
           />
           {/* Luminous overlay for crystal-clear readability */}
           <div className="absolute inset-0 bg-gradient-to-t from-white via-white/50 to-transparent" />
+
+          {/* Floating Actions on Hero Banner */}
+          <div className="absolute top-4 right-4 flex items-center gap-2 z-20">
+            <button
+              onClick={() => setIsLightboxOpen(true)}
+              className="p-2 rounded-xl bg-white/90 hover:bg-white text-slate-700 border border-slate-200/80 shadow-sm backdrop-blur-md transition-all flex items-center gap-1.5 text-xs font-semibold"
+              title="Expandir lámina de presentación"
+            >
+              <EyeExpandIcon size={16} />
+              <span className="hidden sm:inline">Ver Lámina</span>
+            </button>
+            <button
+              onClick={() => setIsQROpen(true)}
+              className="p-2 rounded-xl bg-white/90 hover:bg-white text-slate-700 border border-slate-200/80 shadow-sm backdrop-blur-md transition-all flex items-center gap-1.5 text-xs font-semibold"
+              title="Código QR del Stand"
+            >
+              <QRIcon size={16} />
+              <span className="hidden sm:inline">QR Móvil</span>
+            </button>
+          </div>
         </div>
 
         <div className="relative p-6 sm:p-8 -mt-24 z-10">
           <div className="flex flex-wrap items-center gap-2.5 mb-2.5">
-            <span className="rounded-full bg-white/95 border border-sky-300 px-3 py-1 text-xs font-mono font-bold text-sky-800 backdrop-blur-md shadow-sm">
+            <span className="rounded-full bg-white/95 border border-sky-300 px-3 py-1 text-xs font-mono font-bold text-sky-800 backdrop-blur-md shadow-sm tabular-nums">
               STAND #{stand.stand_number}
             </span>
             <span className="rounded-full bg-purple-100/95 border border-purple-300 px-3 py-1 text-xs font-semibold text-purple-800 backdrop-blur-md shadow-sm">
               {stand.category || 'General'}
             </span>
+            {lastAutoSavedTime && (
+              <span className="inline-flex items-center gap-1 text-[11px] text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-full font-mono">
+                <CloudCheckIcon size={13} className="text-emerald-600" />
+                <span>Borrador guardado {lastAutoSavedTime}</span>
+              </span>
+            )}
           </div>
 
-          <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight mb-2">
+          <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight mb-2 font-serif">
             {stand.project_name}
           </h1>
 
@@ -266,20 +403,25 @@ export const StandEvaluationForm: React.FC<StandEvaluationFormProps> = ({
         </div>
       </div>
 
-      {/* Dynamic Radar Chart Section (Collapsible / Dynamic) */}
+      {/* Dynamic Radar Chart Section (Collapsible with cohort benchmark) */}
       {showRadar && (
         <div className="squircle-card p-6 border border-white/90 shadow-velvet flex flex-col items-center justify-center animate-fade-in">
           <div className="flex items-center gap-2 mb-2 text-slate-800">
             <RadarChartIcon size={18} className="text-sky-600" />
-            <h3 className="text-sm font-bold uppercase tracking-wider">
+            <h3 className="text-sm font-bold uppercase tracking-wider font-serif">
               Matriz Radar Multidimensional del Proyecto
             </h3>
           </div>
           <p className="text-xs text-slate-600 text-center mb-4 max-w-md">
-            Visualización trigonométrica en tiempo real según las calificaciones asignadas por el jurado.
+            Comparativa directa entre la evaluación actual del jurado y el promedio general de la cohorte.
           </p>
 
-          <StandRadarChart criteria={criteria} scores={scores} size={330} />
+          <StandRadarChart
+            criteria={criteria}
+            scores={scores}
+            benchmarkScores={cohortScores}
+            size={340}
+          />
         </div>
       )}
 
@@ -315,7 +457,7 @@ export const StandEvaluationForm: React.FC<StandEvaluationFormProps> = ({
             >
               <div className="flex items-start justify-between gap-4 mb-2">
                 <div className="flex items-center gap-2.5">
-                  <span className="w-8 h-8 rounded-xl bg-sky-100 border border-sky-300 text-sky-800 font-mono text-xs flex items-center justify-center font-bold shadow-sm">
+                  <span className="w-8 h-8 rounded-xl bg-sky-100 border border-sky-300 text-sky-800 font-mono text-xs flex items-center justify-center font-bold shadow-sm tabular-nums">
                     {index + 1}
                   </span>
                   <h3 className="text-sm sm:text-base font-semibold text-slate-900">
@@ -324,11 +466,11 @@ export const StandEvaluationForm: React.FC<StandEvaluationFormProps> = ({
                 </div>
 
                 <div className="flex items-center gap-2 flex-shrink-0">
-                  <span className="rounded-lg bg-slate-100 border border-slate-300 px-2 py-0.5 text-[10px] font-mono text-slate-600 font-semibold">
+                  <span className="rounded-lg bg-slate-100 border border-slate-300 px-2 py-0.5 text-[10px] font-mono text-slate-600 font-semibold tabular-nums">
                     Pond: {Number(crit.weight || 1.0).toFixed(1)}x
                   </span>
                   {selectedScore > 0 && (
-                    <span className="rounded-lg bg-purple-100 border border-purple-300 px-2.5 py-0.5 text-xs font-mono font-bold text-purple-800 shadow-sm">
+                    <span className="rounded-lg bg-purple-100 border border-purple-300 px-2.5 py-0.5 text-xs font-mono font-bold text-purple-800 shadow-sm tabular-nums">
                       Nota: {selectedScore.toFixed(1)}
                     </span>
                   )}
@@ -336,13 +478,13 @@ export const StandEvaluationForm: React.FC<StandEvaluationFormProps> = ({
               </div>
 
               {crit.description && (
-                <p className="text-xs text-slate-600 leading-relaxed mb-4 pl-10">
+                <p className="text-xs text-slate-600 leading-relaxed mb-4 pl-10 italic">
                   {crit.description}
                 </p>
               )}
 
               {/* Fast Touch Ripple Selector (1 to 7) */}
-              <div className="pl-10 pt-1">
+              <div className="pl-0 sm:pl-10 pt-1">
                 <div className="grid grid-cols-7 gap-1.5 sm:gap-2.5 max-w-md">
                   {scaleNumbers.map((num) => {
                     const isNumSelected = selectedScore === num;
@@ -352,8 +494,8 @@ export const StandEvaluationForm: React.FC<StandEvaluationFormProps> = ({
                         type="button"
                         onClick={() => handleScoreChange(crit.id, num)}
                         isActive={isNumSelected}
-                        className={`h-11 rounded-xl font-mono text-sm font-bold transition-all ${
-                          isNumSelected ? 'text-base scale-105 shadow-md' : ''
+                        className={`h-12 sm:h-11 rounded-xl font-mono text-sm sm:text-base font-bold transition-all tabular-nums ${
+                          isNumSelected ? 'text-base sm:text-lg scale-105 shadow-md' : ''
                         }`}
                       >
                         {num}
@@ -376,8 +518,9 @@ export const StandEvaluationForm: React.FC<StandEvaluationFormProps> = ({
       <div className="squircle-card p-6 sm:p-7 space-y-4 border border-white/90 shadow-velvet">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
-            <label htmlFor="eval-feedback" className="block text-xs font-bold text-slate-900 uppercase tracking-wider">
-              Devolución Cualitativa y Asistente Académico IA
+            <label htmlFor="eval-feedback" className="block text-xs font-bold text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
+              <QuotesIcon size={14} className="text-sky-700" />
+              <span>Devolución Cualitativa y Asistente Académico IA</span>
             </label>
             <p className="text-[11px] text-slate-600">
               Comentarios formales para el acta de evaluación y dictamen oficial de la UACh.
@@ -441,7 +584,7 @@ export const StandEvaluationForm: React.FC<StandEvaluationFormProps> = ({
             value={generalFeedback}
             onChange={(e) => setGeneralFeedback(e.target.value)}
             placeholder="Escribe aquí las observaciones o pulsa uno de los modos del Asistente IA para generar una propuesta académica estructurada..."
-            className="w-full rounded-2xl glass-input px-4 py-3 text-xs sm:text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none resize-y leading-relaxed"
+            className="w-full rounded-2xl glass-input px-4 py-3 text-xs sm:text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none resize-y leading-relaxed font-sans"
           />
           {isGeneratingAI && (
             <div className="absolute inset-0 bg-white/70 backdrop-blur-sm rounded-2xl flex items-center justify-center gap-2 text-xs font-semibold text-slate-800">
@@ -456,20 +599,20 @@ export const StandEvaluationForm: React.FC<StandEvaluationFormProps> = ({
       <div className="sticky bottom-4 z-30 squircle-card p-4 flex items-center justify-between shadow-velvet-lg border border-white/95">
         <div>
           <span className="block text-[11px] font-mono text-slate-500">
-            Promedio: <strong className="text-slate-900 font-bold font-mono text-base">{currentAverage.toFixed(2)}</strong>
+            Promedio: <strong className="text-slate-900 font-bold font-mono text-base tabular-nums">{currentAverage.toFixed(2)}</strong>
           </span>
-          <span className="text-[10px] text-slate-500">
+          <span className="text-[10px] text-slate-500 tabular-nums">
             {answeredCount === totalCount
               ? 'Todos los criterios calificados'
               : `Faltan ${totalCount - answeredCount} criterios por responder`}
           </span>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
           <RippleButton
             type="button"
             onClick={onBack}
-            className="rounded-xl px-4 py-2.5 text-xs font-semibold"
+            className="rounded-xl px-3 sm:px-4 py-2 sm:py-2.5 text-xs font-semibold"
           >
             Cancelar
           </RippleButton>
@@ -479,13 +622,30 @@ export const StandEvaluationForm: React.FC<StandEvaluationFormProps> = ({
             onClick={handleSave}
             disabled={isSaving || answeredCount < totalCount}
             isActive={true}
-            className="flex items-center gap-2 rounded-xl px-6 py-2.5 text-xs font-bold disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
+            className="flex items-center gap-1.5 sm:gap-2 rounded-xl px-4 sm:px-6 py-2 sm:py-2.5 text-xs font-bold disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
           >
             <SaveIcon size={16} />
-            <span>{isSaving ? 'Guardando en Supabase...' : 'Registrar Evaluación'}</span>
+            <span>{isSaving ? 'Guardando...' : 'Registrar Evaluación'}</span>
           </RippleButton>
         </div>
       </div>
+
+      {/* Modals */}
+      <StandImageLightbox
+        isOpen={isLightboxOpen}
+        imageUrl={standImg}
+        standName={stand.project_name}
+        category={stand.category}
+        onClose={() => setIsLightboxOpen(false)}
+      />
+
+      <StandQRCodeModal
+        isOpen={isQROpen}
+        standId={stand.id}
+        standNumber={Number(stand.stand_number)}
+        standName={stand.project_name}
+        onClose={() => setIsQROpen(false)}
+      />
     </div>
   );
 };

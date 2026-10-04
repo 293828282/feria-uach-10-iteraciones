@@ -1,32 +1,38 @@
 'use client';
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { EvaluationCriteria } from '@/types/database';
 
 interface StandRadarChartProps {
   criteria: EvaluationCriteria[];
   scores: Record<string, number>;
+  benchmarkScores?: Record<string, number>;
   size?: number;
   className?: string;
+  showLegend?: boolean;
 }
 
 export const StandRadarChart: React.FC<StandRadarChartProps> = ({
   criteria,
   scores,
+  benchmarkScores,
   size = 320,
   className = '',
+  showLegend = true,
 }) => {
+  const [hoveredCritId, setHoveredCritId] = useState<string | null>(null);
+
   const activeCriteria = useMemo(() => criteria.filter((c) => c.is_active), [criteria]);
 
   const count = activeCriteria.length;
   const center = size / 2;
-  const radius = size * 0.38;
+  const radius = size * 0.36;
 
-  // Generate levels for concentric polygon web (from 1 to 7)
+  // Levels for concentric polygon web (1 to 7)
   const levels = [2, 4, 6, 7];
 
-  // Calculate polygon points for each score
-  const polygonPoints = useMemo(() => {
+  // Calculate stand polygon points
+  const standPolygonPoints = useMemo(() => {
     if (count < 3) return '';
 
     return activeCriteria
@@ -41,6 +47,23 @@ export const StandRadarChart: React.FC<StandRadarChartProps> = ({
       })
       .join(' ');
   }, [activeCriteria, scores, count, center, radius]);
+
+  // Calculate benchmark polygon points
+  const benchmarkPolygonPoints = useMemo(() => {
+    if (count < 3 || !benchmarkScores) return '';
+
+    return activeCriteria
+      .map((crit, i) => {
+        const angle = (Math.PI * 2 * i) / count - Math.PI / 2;
+        const score = benchmarkScores[crit.id] || 4.0;
+        const normalized = Math.max(1, Math.min(score, 7)) / 7;
+        const r = radius * normalized;
+        const x = center + r * Math.cos(angle);
+        const y = center + r * Math.sin(angle);
+        return `${x.toFixed(1)},${y.toFixed(1)}`;
+      })
+      .join(' ');
+  }, [activeCriteria, benchmarkScores, count, center, radius]);
 
   if (count < 3) {
     return (
@@ -117,17 +140,23 @@ export const StandRadarChart: React.FC<StandRadarChartProps> = ({
               : crit.question_text;
 
           const currentVal = scores[crit.id] || 0;
+          const isHovered = hoveredCritId === crit.id;
 
           return (
-            <g key={crit.id}>
+            <g
+              key={crit.id}
+              className="cursor-pointer"
+              onMouseEnter={() => setHoveredCritId(crit.id)}
+              onMouseLeave={() => setHoveredCritId(null)}
+            >
               {/* Spoke line */}
               <line
                 x1={center}
                 y1={center}
                 x2={x2}
                 y2={y2}
-                stroke="rgba(186, 230, 253, 0.8)"
-                strokeWidth="1.2"
+                stroke={isHovered ? '#0284c7' : 'rgba(186, 230, 253, 0.8)'}
+                strokeWidth={isHovered ? 2 : 1.2}
               />
 
               {/* Text Badge */}
@@ -135,7 +164,9 @@ export const StandRadarChart: React.FC<StandRadarChartProps> = ({
                 x={labelX}
                 y={labelY - 3}
                 textAnchor="middle"
-                className="text-[9.5px] font-semibold fill-slate-700 font-sans"
+                className={`text-[9.5px] font-semibold font-sans transition-colors ${
+                  isHovered ? 'fill-sky-800 font-bold' : 'fill-slate-700'
+                }`}
               >
                 {shortTitle}
               </text>
@@ -151,11 +182,25 @@ export const StandRadarChart: React.FC<StandRadarChartProps> = ({
           );
         })}
 
-        {/* The Evaluated Area Polygon */}
-        {polygonPoints && (
+        {/* Benchmark / Fair Cohort Average Polygon */}
+        {benchmarkPolygonPoints && (
+          <polygon
+            points={benchmarkPolygonPoints}
+            fill="none"
+            stroke="#c084fc"
+            strokeWidth="1.8"
+            strokeDasharray="4 3"
+            strokeLinejoin="round"
+            opacity="0.85"
+            className="transition-all duration-500 ease-out"
+          />
+        )}
+
+        {/* Stand Evaluated Area Polygon */}
+        {standPolygonPoints && (
           <>
             <polygon
-              points={polygonPoints}
+              points={standPolygonPoints}
               fill="url(#radarGradient)"
               stroke="url(#radarStroke)"
               strokeWidth="2.5"
@@ -172,17 +217,18 @@ export const StandRadarChart: React.FC<StandRadarChartProps> = ({
               const r = radius * normalized;
               const cx = center + r * Math.cos(angle);
               const cy = center + r * Math.sin(angle);
+              const isHovered = hoveredCritId === crit.id;
 
               return (
                 <circle
                   key={crit.id}
                   cx={cx}
                   cy={cy}
-                  r="4.5"
+                  r={isHovered ? '6.5' : '4.5'}
                   fill="#ffffff"
-                  stroke="#0284c7"
-                  strokeWidth="2"
-                  className="transition-all duration-500 ease-out hover:scale-125"
+                  stroke={isHovered ? '#9333ea' : '#0284c7'}
+                  strokeWidth={isHovered ? '2.5' : '2'}
+                  className="transition-all duration-300 ease-out"
                 />
               );
             })}
@@ -192,6 +238,22 @@ export const StandRadarChart: React.FC<StandRadarChartProps> = ({
         {/* Center dot */}
         <circle cx={center} cy={center} r="3" fill="#94a3b8" />
       </svg>
+
+      {/* Legend */}
+      {showLegend && (
+        <div className="mt-2 flex items-center justify-center gap-4 text-[11px] text-slate-600">
+          <div className="flex items-center gap-1.5">
+            <span className="w-3 h-3 rounded-full bg-sky-500 border border-white shadow-xs" />
+            <span className="font-semibold text-slate-800">Evaluación del Stand</span>
+          </div>
+          {benchmarkScores && (
+            <div className="flex items-center gap-1.5">
+              <span className="w-3 h-1 border-t-2 border-dashed border-lila-500" />
+              <span className="text-slate-600">Promedio de la Feria</span>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 };

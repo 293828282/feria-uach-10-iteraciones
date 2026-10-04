@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import Image from 'next/image';
 import { StandEvaluationSummary, EvaluationCriteria } from '@/types/database';
 import {
@@ -12,10 +12,12 @@ import {
   AwardLaurelIcon,
   ConfettiSparkleIcon,
   RadarChartIcon,
+  DownloadDocIcon,
 } from '@/components/ui/vectors';
 import { RippleButton } from '@/components/ui/RippleButton';
 import { StandRadarChart } from '@/components/StandRadarChart';
 import { firePodiumVictoryConfetti } from '@/lib/celebration';
+import { exportRankingsToCSV } from '@/lib/exportCsv';
 
 function getStandImage(standNumber: string) {
   const clean = standNumber.replace(/\D/g, '').padStart(2, '0');
@@ -49,6 +51,26 @@ export const PodiumSection: React.FC<PodiumSectionProps> = ({
       ? scoredStands.reduce((acc, curr) => acc + curr.weightedScore, 0) /
         scoredStands.length
       : 0;
+
+  // Calculate cohort benchmark score per criteria
+  const cohortScores = useMemo(() => {
+    const map: Record<string, number> = {};
+    if (scoredStands.length === 0) return map;
+
+    criteria.forEach((c) => {
+      let sum = 0;
+      let count = 0;
+      scoredStands.forEach((s) => {
+        if (s.criteriaScores && s.criteriaScores[c.id]) {
+          sum += s.criteriaScores[c.id];
+          count += 1;
+        }
+      });
+      map[c.id] = count > 0 ? sum / count : 4.0;
+    });
+
+    return map;
+  }, [criteria, scoredStands]);
 
   const handlePrint = () => {
     window.print();
@@ -100,7 +122,7 @@ export const PodiumSection: React.FC<PodiumSectionProps> = ({
       {/* Official Winners Podium Header & Action Buttons */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-sky-200/60 pb-4">
         <div>
-          <h2 className="text-xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
+          <h2 className="text-xl font-bold text-slate-900 tracking-tight flex items-center gap-2 font-serif">
             <AwardTrophyIcon className="text-amber-500" size={24} />
             <span>Podio Oficial de Emprendimiento UACh 2026</span>
           </h2>
@@ -111,19 +133,27 @@ export const PodiumSection: React.FC<PodiumSectionProps> = ({
 
         <div className="flex items-center gap-2.5 flex-wrap">
           <RippleButton
+            onClick={() => exportRankingsToCSV(rankings)}
+            className="flex items-center gap-2 px-3.5 py-2 text-xs font-semibold rounded-xl text-slate-800"
+          >
+            <DownloadDocIcon size={15} />
+            <span>Exportar CSV</span>
+          </RippleButton>
+
+          <RippleButton
             onClick={firePodiumVictoryConfetti}
-            className="px-4 py-2 text-xs font-semibold rounded-xl text-purple-900 border-purple-200"
+            className="px-3.5 py-2 text-xs font-semibold rounded-xl text-purple-900 border-purple-200"
           >
             <ConfettiSparkleIcon size={16} className="text-purple-600" />
-            <span>Celebrar Triunfo</span>
+            <span>Celebrar</span>
           </RippleButton>
 
           <RippleButton
             onClick={handlePrint}
-            className="flex items-center gap-2 px-4 py-2 text-xs font-semibold rounded-xl"
+            className="flex items-center gap-2 px-3.5 py-2 text-xs font-semibold rounded-xl"
           >
             <ExportIcon size={15} />
-            <span>Imprimir Acta Oficial</span>
+            <span>Imprimir Acta</span>
           </RippleButton>
         </div>
       </div>
@@ -150,10 +180,10 @@ export const PodiumSection: React.FC<PodiumSectionProps> = ({
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-white/90 via-transparent to-transparent" />
                 </div>
-                <span className="inline-block rounded-md bg-slate-100 border border-slate-200 px-2.5 py-0.5 text-[10px] font-mono text-slate-700 font-semibold mb-2">
+                <span className="inline-block rounded-md bg-slate-100 border border-slate-200 px-2.5 py-0.5 text-[10px] font-mono text-slate-700 font-semibold mb-2 tabular-nums">
                   STAND #{second.stand.stand_number} &bull; {second.stand.category}
                 </span>
-                <h3 className="text-lg font-bold text-slate-900 mb-2 line-clamp-2">
+                <h3 className="text-lg font-bold text-slate-900 mb-2 line-clamp-2 font-serif">
                   {second.stand.project_name}
                 </h3>
                 <p className="text-xs text-slate-600 line-clamp-2 mb-4 leading-relaxed">
@@ -205,14 +235,14 @@ export const PodiumSection: React.FC<PodiumSectionProps> = ({
                   <div className="absolute inset-0 bg-gradient-to-t from-white/95 via-transparent to-transparent" />
                 </div>
                 <div className="flex items-center gap-2 mb-2">
-                  <span className="inline-block rounded-md bg-amber-100 border border-amber-300 px-2.5 py-0.5 text-[11px] font-mono font-bold text-amber-900">
+                  <span className="inline-block rounded-md bg-amber-100 border border-amber-300 px-2.5 py-0.5 text-[11px] font-mono font-bold text-amber-900 tabular-nums">
                     STAND #{first.stand.stand_number} &bull; {first.stand.category}
                   </span>
                   <span className="text-[10px] font-semibold text-amber-800 bg-amber-200/60 px-2 py-0.5 rounded">
                     Gran Dictamen
                   </span>
                 </div>
-                <h3 className="text-xl font-bold text-slate-900 mb-2 leading-tight">
+                <h3 className="text-xl font-bold text-slate-900 mb-2 leading-tight font-serif">
                   {first.stand.project_name}
                 </h3>
                 <p className="text-xs text-slate-700 line-clamp-3 mb-4 leading-relaxed">
@@ -264,10 +294,10 @@ export const PodiumSection: React.FC<PodiumSectionProps> = ({
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-white/90 via-transparent to-transparent" />
                 </div>
-                <span className="inline-block rounded-md bg-slate-100 border border-slate-200 px-2.5 py-0.5 text-[10px] font-mono text-slate-700 font-semibold mb-2">
+                <span className="inline-block rounded-md bg-slate-100 border border-slate-200 px-2.5 py-0.5 text-[10px] font-mono text-slate-700 font-semibold mb-2 tabular-nums">
                   STAND #{third.stand.stand_number} &bull; {third.stand.category}
                 </span>
-                <h3 className="text-lg font-bold text-slate-900 mb-2 line-clamp-2">
+                <h3 className="text-lg font-bold text-slate-900 mb-2 line-clamp-2 font-serif">
                   {third.stand.project_name}
                 </h3>
                 <p className="text-xs text-slate-600 line-clamp-2 mb-4 leading-relaxed">
@@ -304,7 +334,7 @@ export const PodiumSection: React.FC<PodiumSectionProps> = ({
           <div className="flex items-center justify-between pb-3 border-b border-sky-200/60 mb-4">
             <div className="flex items-center gap-2">
               <RadarChartIcon size={18} className="text-sky-600" />
-              <h3 className="text-sm font-bold text-slate-900">
+              <h3 className="text-sm font-bold text-slate-900 font-serif">
                 Desglose Radar: Stand #{selectedStandSummary.stand.stand_number} &bull; {selectedStandSummary.stand.project_name}
               </h3>
             </div>
@@ -320,11 +350,12 @@ export const PodiumSection: React.FC<PodiumSectionProps> = ({
             <StandRadarChart
               criteria={criteria}
               scores={selectedStandSummary.criteriaScores}
+              benchmarkScores={cohortScores}
               size={300}
             />
 
             <div className="space-y-2 max-w-sm w-full">
-              <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider mb-2">
+              <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider mb-2 font-serif">
                 Puntajes Promedio por Criterio:
               </h4>
               {criteria.map((c) => {
@@ -335,7 +366,7 @@ export const PodiumSection: React.FC<PodiumSectionProps> = ({
                     className="flex items-center justify-between text-xs p-2 rounded-xl bg-white/70 border border-slate-200"
                   >
                     <span className="text-slate-700 truncate pr-2">{c.question_text}</span>
-                    <span className="font-mono font-bold text-sky-800 flex-shrink-0">
+                    <span className="font-mono font-bold text-sky-800 flex-shrink-0 tabular-nums">
                       {avg > 0 ? avg.toFixed(1) : '---'} / 7.0
                     </span>
                   </div>
@@ -346,21 +377,47 @@ export const PodiumSection: React.FC<PodiumSectionProps> = ({
         </div>
       )}
 
-      {/* Full Rankings Data Table */}
+      {/* Full Rankings Data Table (Desktop) & Cards (Mobile) */}
       <div className="squircle-card overflow-hidden border border-white/90 shadow-velvet">
         <div className="px-6 py-4 border-b border-slate-200/80 bg-slate-50/70 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <ChartBarIcon size={17} className="text-sky-600" />
-            <h3 className="text-sm font-bold text-slate-900">
+            <h3 className="text-sm font-bold text-slate-900 font-serif">
               Tabla Completa de Clasificación y Dictamen
             </h3>
           </div>
-          <span className="text-xs font-mono text-slate-500">
+          <span className="text-xs font-mono text-slate-500 tabular-nums">
             {rankings.length} proyectos registrados
           </span>
         </div>
 
-        <div className="overflow-x-auto">
+        {/* Mobile View (< 768px): Card Stack */}
+        <div className="md:hidden divide-y divide-slate-100 p-3 space-y-3">
+          {rankings.map((summary, idx) => (
+            <div key={summary.stand.id} className="p-3 bg-white/80 rounded-2xl border border-slate-100 shadow-xs flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <span className="w-8 h-8 rounded-xl bg-slate-100 font-mono font-bold text-xs flex items-center justify-center text-slate-700">
+                  {idx + 1}°
+                </span>
+                <div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs font-mono font-bold text-sky-700">#{summary.stand.stand_number}</span>
+                    <h4 className="text-xs font-bold text-slate-900 truncate max-w-[170px] font-serif">{summary.stand.project_name}</h4>
+                  </div>
+                  <span className="text-[10px] text-slate-500">{summary.stand.category} &bull; {summary.evaluationsCount} votos</span>
+                </div>
+              </div>
+              <div className="text-right">
+                <span className="text-base font-bold font-mono text-slate-900 tabular-nums">
+                  {summary.evaluationsCount > 0 ? summary.weightedScore.toFixed(2) : '---'}
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Desktop View (>= 768px): Full Table */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-left text-xs">
             <thead className="bg-slate-100/60 border-b border-slate-200/80 text-[11px] font-mono uppercase text-slate-500">
               <tr>
@@ -375,7 +432,7 @@ export const PodiumSection: React.FC<PodiumSectionProps> = ({
             <tbody className="divide-y divide-slate-100 text-slate-800">
               {rankings.map((summary, idx) => (
                 <tr key={summary.stand.id} className="hover:bg-white/70 transition-colors">
-                  <td className="py-3.5 px-4 text-center font-mono font-bold text-slate-500">
+                  <td className="py-3.5 px-4 text-center font-mono font-bold text-slate-500 tabular-nums">
                     {idx === 0 && <span className="text-amber-500 font-extrabold">1°</span>}
                     {idx === 1 && <span className="text-slate-600 font-extrabold">2°</span>}
                     {idx === 2 && <span className="text-amber-700 font-extrabold">3°</span>}
@@ -383,10 +440,10 @@ export const PodiumSection: React.FC<PodiumSectionProps> = ({
                   </td>
                   <td className="py-3.5 px-4">
                     <div className="flex items-center gap-2.5">
-                      <span className="font-mono text-sky-700 font-bold">
+                      <span className="font-mono text-sky-700 font-bold tabular-nums">
                         #{summary.stand.stand_number}
                       </span>
-                      <span className="font-semibold text-slate-900">
+                      <span className="font-semibold text-slate-900 font-serif">
                         {summary.stand.project_name}
                       </span>
                     </div>
@@ -394,13 +451,13 @@ export const PodiumSection: React.FC<PodiumSectionProps> = ({
                   <td className="py-3.5 px-4 text-slate-500">
                     {summary.stand.category}
                   </td>
-                  <td className="py-3.5 px-4 text-center font-mono text-slate-600">
+                  <td className="py-3.5 px-4 text-center font-mono text-slate-600 tabular-nums">
                     {summary.evaluationsCount}
                   </td>
-                  <td className="py-3.5 px-4 text-center font-mono text-slate-600">
+                  <td className="py-3.5 px-4 text-center font-mono text-slate-600 tabular-nums">
                     {summary.judgesCount}
                   </td>
-                  <td className="py-3.5 px-4 text-right font-mono font-bold text-slate-900 text-sm">
+                  <td className="py-3.5 px-4 text-right font-mono font-bold text-slate-900 text-sm tabular-nums">
                     {summary.evaluationsCount > 0 ? summary.weightedScore.toFixed(2) : '---'}
                   </td>
                 </tr>

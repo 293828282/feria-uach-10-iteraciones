@@ -96,7 +96,7 @@ export const WelcomeJudgeGate: React.FC<WelcomeJudgeGateProps> = ({
             Universidad Austral de Chile &bull; Feria 2026
           </span>
 
-          <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight mb-2">
+          <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight mb-2 font-serif">
             ¿Qué juez eres tú?
           </h1>
           <p className="text-xs sm:text-sm text-slate-600 max-w-md leading-relaxed">

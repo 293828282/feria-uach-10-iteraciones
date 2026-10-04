@@ -154,67 +154,113 @@ export const CriteriaManagement: React.FC<CriteriaManagementProps> = ({
       </div>
 
       <div className="rounded-3xl glass-panel overflow-hidden border border-white/80 shadow-md">
-        <table className="w-full text-left text-xs">
-          <thead className="bg-slate-50/80 border-b border-slate-200/80 text-[11px] font-mono uppercase text-slate-500">
-            <tr>
-              <th className="py-3 px-4 w-14 text-center">N°</th>
-              <th className="py-3 px-4">Criterio / Pregunta</th>
-              <th className="py-3 px-4">Descripción Institucional</th>
-              <th className="py-3 px-4 text-center">Escala</th>
-              <th className="py-3 px-4 text-center">Ponderación</th>
-              <th className="py-3 px-4 text-center">Estado</th>
-              <th className="py-3 px-4 text-right">Acciones</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100 text-slate-800">
-            {criteria.map((crit, index) => (
-              <tr key={crit.id} className="hover:bg-white/60 transition-colors">
-                <td className="py-3.5 px-4 text-center font-mono font-bold text-slate-400">
-                  {crit.order_index || index + 1}
-                </td>
-                <td className="py-3.5 px-4 font-semibold text-slate-900 max-w-[220px]">
-                  {crit.question_text}
-                </td>
-                <td className="py-3.5 px-4 text-slate-500 max-w-sm text-[11px] leading-relaxed line-clamp-2">
-                  {crit.description}
-                </td>
-                <td className="py-3.5 px-4 text-center font-mono text-slate-700">
-                  1 - {crit.max_score}
-                </td>
-                <td className="py-3.5 px-4 text-center font-mono font-bold text-sky-700">
-                  {Number(crit.weight || 1.0).toFixed(1)}x
-                </td>
-                <td className="py-3.5 px-4 text-center">
-                  <span
-                    className={`inline-block rounded-full px-2.5 py-0.5 text-[10px] font-mono font-bold ${
-                      crit.is_active
-                        ? 'bg-sky-50 text-sky-800 border border-sky-200'
-                        : 'bg-slate-100 text-slate-400 border border-slate-200'
-                    }`}
-                  >
-                    {crit.is_active ? 'Activo' : 'Inactivo'}
+        {/* Mobile View (< 768px): Card Stack */}
+        <div className="md:hidden divide-y divide-slate-100 p-3 space-y-3">
+          {criteria.map((crit, index) => (
+            <div key={crit.id} className="p-3.5 bg-white/80 rounded-2xl border border-slate-100 shadow-xs flex flex-col gap-2">
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <span className="w-6 h-6 rounded-lg bg-sky-100 text-sky-800 font-mono font-bold text-xs flex items-center justify-center">
+                    {crit.order_index || index + 1}
                   </span>
-                </td>
-                <td className="py-3.5 px-4 text-right space-x-2">
+                  <h4 className="text-xs font-bold text-slate-900 line-clamp-1">{crit.question_text}</h4>
+                </div>
+                <span className="font-mono text-xs font-bold text-sky-700 bg-sky-50 px-2 py-0.5 rounded-md border border-sky-200">
+                  {Number(crit.weight || 1.0).toFixed(1)}x
+                </span>
+              </div>
+              {crit.description && (
+                <p className="text-[11px] text-slate-500 italic line-clamp-2">{crit.description}</p>
+              )}
+              <div className="flex items-center justify-between pt-2 border-t border-slate-100">
+                <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-full ${crit.is_active ? 'bg-sky-50 text-sky-800' : 'bg-slate-100 text-slate-400'}`}>
+                  {crit.is_active ? 'Activo' : 'Inactivo'}
+                </span>
+                <div className="flex items-center gap-2">
                   <button
                     onClick={() => openEditModal(crit)}
-                    className="btn-light-gray p-1.5 rounded-lg inline-block text-slate-600 hover:text-slate-900"
-                    title="Editar Criterio"
+                    className="btn-light-gray min-h-[44px] px-3 rounded-xl inline-flex items-center gap-1 text-xs text-slate-700"
                   >
-                    <EditIcon size={15} />
+                    <EditIcon size={14} />
+                    <span>Editar</span>
                   </button>
                   <button
                     onClick={() => setCriteriaToDelete(crit)}
-                    className="btn-light-gray p-1.5 rounded-lg inline-block text-slate-600 hover:text-red-600"
-                    title="Eliminar Criterio"
+                    className="btn-light-gray min-h-[44px] px-3 rounded-xl inline-flex items-center gap-1 text-xs text-red-600"
                   >
-                    <TrashIcon size={15} />
+                    <TrashIcon size={14} />
+                    <span>Eliminar</span>
                   </button>
-                </td>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Desktop View (>= 768px): Full Table */}
+        <div className="hidden md:block overflow-x-auto">
+          <table className="w-full text-left text-xs">
+            <thead className="bg-slate-50/80 border-b border-slate-200/80 text-[11px] font-mono uppercase text-slate-500">
+              <tr>
+                <th className="py-3 px-4 w-14 text-center">N°</th>
+                <th className="py-3 px-4">Criterio / Pregunta</th>
+                <th className="py-3 px-4">Descripción Institucional</th>
+                <th className="py-3 px-4 text-center">Escala</th>
+                <th className="py-3 px-4 text-center">Ponderación</th>
+                <th className="py-3 px-4 text-center">Estado</th>
+                <th className="py-3 px-4 text-right">Acciones</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody className="divide-y divide-slate-100 text-slate-800">
+              {criteria.map((crit, index) => (
+                <tr key={crit.id} className="hover:bg-white/60 transition-colors">
+                  <td className="py-3.5 px-4 text-center font-mono font-bold text-slate-400">
+                    {crit.order_index || index + 1}
+                  </td>
+                  <td className="py-3.5 px-4 font-semibold text-slate-900 max-w-[220px]">
+                    {crit.question_text}
+                  </td>
+                  <td className="py-3.5 px-4 text-slate-500 max-w-sm text-[11px] leading-relaxed line-clamp-2">
+                    {crit.description}
+                  </td>
+                  <td className="py-3.5 px-4 text-center font-mono text-slate-700">
+                    1 - {crit.max_score}
+                  </td>
+                  <td className="py-3.5 px-4 text-center font-mono font-bold text-sky-700">
+                    {Number(crit.weight || 1.0).toFixed(1)}x
+                  </td>
+                  <td className="py-3.5 px-4 text-center">
+                    <span
+                      className={`inline-block rounded-full px-2.5 py-0.5 text-[10px] font-mono font-bold ${
+                        crit.is_active
+                          ? 'bg-sky-50 text-sky-800 border border-sky-200'
+                          : 'bg-slate-100 text-slate-400 border border-slate-200'
+                      }`}
+                    >
+                      {crit.is_active ? 'Activo' : 'Inactivo'}
+                    </span>
+                  </td>
+                  <td className="py-3.5 px-4 text-right space-x-2">
+                    <button
+                      onClick={() => openEditModal(crit)}
+                      className="btn-light-gray p-1.5 rounded-lg inline-block text-slate-600 hover:text-slate-900"
+                      title="Editar Criterio"
+                    >
+                      <EditIcon size={15} />
+                    </button>
+                    <button
+                      onClick={() => setCriteriaToDelete(crit)}
+                      className="btn-light-gray p-1.5 rounded-lg inline-block text-slate-600 hover:text-red-600"
+                      title="Eliminar Criterio"
+                    >
+                      <TrashIcon size={15} />
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {/* Modal */}

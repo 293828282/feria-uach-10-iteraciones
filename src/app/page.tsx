@@ -1,8 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import Image from 'next/image';
-import { supabase } from '@/lib/supabase';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import {
   Stand,
   Judge,
@@ -10,20 +8,26 @@ import {
   Evaluation,
   StandEvaluationSummary,
 } from '@/types/database';
+import { supabase } from '@/lib/supabase';
 import { Navbar } from '@/components/Navbar';
-import { WelcomeJudgeGate } from '@/components/WelcomeJudgeGate';
-import { JudgeSelectorModal } from '@/components/JudgeSelectorModal';
-import { AdminLoginModal } from '@/components/AdminLoginModal';
+import { TiltStandCard } from '@/components/TiltStandCard';
 import { StandEvaluationForm } from '@/components/StandEvaluationForm';
 import { AdminDashboard } from '@/components/AdminDashboard';
-import { TiltStandCard } from '@/components/TiltStandCard';
-import { RippleButton } from '@/components/ui/RippleButton';
+import { PodiumSection } from '@/components/PodiumSection';
+import { JudgeSelectorModal } from '@/components/JudgeSelectorModal';
+import { AdminLoginModal } from '@/components/AdminLoginModal';
+import { WelcomeJudgeGate } from '@/components/WelcomeJudgeGate';
+import { MobileBottomNav } from '@/components/MobileBottomNav';
+import { StandImageLightbox } from '@/components/StandImageLightbox';
+import { StandQRCodeModal } from '@/components/StandQRCodeModal';
 import {
   SearchIcon,
   FilterIcon,
+  CloseIcon,
+  UniversityShieldIcon,
   CheckIcon,
-  ChevronRightIcon,
 } from '@/components/ui/vectors';
+import { RippleButton } from '@/components/ui/RippleButton';
 
 function getStandImage(standNumber: string) {
   const clean = standNumber.replace(/\D/g, '').padStart(2, '0');
@@ -31,7 +35,7 @@ function getStandImage(standNumber: string) {
   return valid.includes(clean) ? `/stands/stand-${clean}.jpg` : '/stands/stand-01.jpg';
 }
 
-export default function FeriaHomePage() {
+export default function Home() {
   const [stands, setStands] = useState<Stand[]>([]);
   const [judges, setJudges] = useState<Judge[]>([]);
   const [criteria, setCriteria] = useState<EvaluationCriteria[]>([]);
@@ -39,9 +43,9 @@ export default function FeriaHomePage() {
   const [isLoading, setIsLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  // Active Context: initial judge is null to ensure the welcome identification gate is shown!
+  // Active Context
   const [currentJudge, setCurrentJudge] = useState<Judge | null>(null);
-  const [activeView, setActiveView] = useState<'judge' | 'admin'>('judge');
+  const [activeView, setActiveView] = useState<'judge' | 'podium' | 'admin'>('judge');
   const [isAdmin, setIsAdmin] = useState(false);
 
   // Modals
@@ -54,6 +58,38 @@ export default function FeriaHomePage() {
   // Search & Filter
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('Todas');
+  const [selectedStatus, setSelectedStatus] = useState<'all' | 'pending' | 'completed'>('all');
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  // Stand Image Lightbox & QR Modals
+  const [lightboxData, setLightboxData] = useState<{
+    isOpen: boolean;
+    imageUrl: string;
+    name: string;
+    category: string;
+  }>({
+    isOpen: false,
+    imageUrl: '',
+    name: '',
+    category: '',
+  });
+  const [qrModalStand, setQrModalStand] = useState<Stand | null>(null);
+
+  // Global keyboard shortcut '/' to focus search
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (
+        e.key === '/' &&
+        document.activeElement?.tagName !== 'INPUT' &&
+        document.activeElement?.tagName !== 'TEXTAREA'
+      ) {
+        e.preventDefault();
+        searchInputRef.current?.focus();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   // Load all data from Supabase
   const loadData = useCallback(async () => {
@@ -126,19 +162,6 @@ export default function FeriaHomePage() {
 
   const activeStands = useMemo(() => stands.filter((s) => s.is_active), [stands]);
 
-  const filteredStands = useMemo(() => {
-    return activeStands.filter((s) => {
-      const query = searchQuery.toLowerCase();
-      const matchesSearch =
-        s.project_name.toLowerCase().includes(query) ||
-        s.stand_number.toLowerCase().includes(query) ||
-        (s.team_members && s.team_members.toLowerCase().includes(query));
-
-      const matchesCat = selectedCategory === 'Todas' || s.category === selectedCategory;
-      return matchesSearch && matchesCat;
-    });
-  }, [activeStands, searchQuery, selectedCategory]);
-
   // Evaluations by current judge
   const judgeEvaluationsMap = useMemo(() => {
     const map = new Map<string, Evaluation[]>();
@@ -165,7 +188,49 @@ export default function FeriaHomePage() {
     return count;
   }, [activeStands, judgeEvaluationsMap, criteria.length]);
 
-  // Stand rankings for Admin
+  // Cohort benchmark averages per criteria
+  const cohortScores = useMemo(() => {
+    const map: Record<string, number> = {};
+    criteria.forEach((c) => {
+      let sum = 0;
+      let count = 0;
+      evaluations.forEach((ev) => {
+        if (ev.criteria_id === c.id) {
+          sum += Number(ev.score);
+          count += 1;
+        }
+      });
+      map[c.id] = count > 0 ? sum / count : 4.0;
+    });
+    return map;
+  }, [criteria, evaluations]);
+
+  // Filtered stands (Search + Category + Status)
+  const filteredStands = useMemo(() => {
+    return activeStands.filter((s) => {
+      const query = searchQuery.toLowerCase();
+      const matchesSearch =
+        s.project_name.toLowerCase().includes(query) ||
+        s.stand_number.toLowerCase().includes(query) ||
+        (s.team_members && s.team_members.toLowerCase().includes(query));
+
+      const matchesCat = selectedCategory === 'Todas' || s.category === selectedCategory;
+
+      const standEvals = judgeEvaluationsMap.get(s.id) || [];
+      const isCompleted = standEvals.length >= criteria.length && criteria.length > 0;
+
+      let matchesStatus = true;
+      if (selectedStatus === 'pending') {
+        matchesStatus = !isCompleted;
+      } else if (selectedStatus === 'completed') {
+        matchesStatus = isCompleted;
+      }
+
+      return matchesSearch && matchesCat && matchesStatus;
+    });
+  }, [activeStands, searchQuery, selectedCategory, selectedStatus, judgeEvaluationsMap, criteria.length]);
+
+  // Stand rankings for Admin & Podium
   const standRankings: StandEvaluationSummary[] = useMemo(() => {
     return activeStands.map((stand) => {
       const standEvals = evaluations.filter((ev) => ev.stand_id === stand.id);
@@ -236,7 +301,7 @@ export default function FeriaHomePage() {
   }
 
   return (
-    <div className="min-h-screen text-slate-800 flex flex-col justify-between">
+    <div className="min-h-screen text-slate-800 flex flex-col justify-between pb-20 md:pb-0">
       {/* Top Institutional Navbar */}
       <Navbar
         currentJudge={currentJudge}
@@ -252,7 +317,7 @@ export default function FeriaHomePage() {
         setActiveView={setActiveView}
       />
 
-      {/* Main Content */}
+      {/* Main Content Area */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 flex-1 w-full">
         {errorMsg && (
           <div className="mb-6 rounded-2xl border border-red-500/40 bg-red-50 px-4 py-3 text-xs text-red-700">
@@ -260,7 +325,7 @@ export default function FeriaHomePage() {
           </div>
         )}
 
-        {/* VIEW 1: JUDGE ENVIRONMENT */}
+        {/* VIEW 1: JUDGE ENVIRONMENT & STAND CATALOG */}
         {activeView === 'judge' && (
           <div>
             {evaluatingStand && currentJudge ? (
@@ -269,6 +334,9 @@ export default function FeriaHomePage() {
                 judge={currentJudge}
                 criteria={criteria.filter((c) => c.is_active)}
                 existingEvaluations={judgeEvaluationsMap.get(evaluatingStand.id) || []}
+                allStands={activeStands}
+                cohortScores={cohortScores}
+                onSelectStand={(st) => setEvaluatingStand(st)}
                 onBack={() => setEvaluatingStand(null)}
                 onEvaluationSaved={() => {
                   setEvaluatingStand(null);
@@ -286,7 +354,7 @@ export default function FeriaHomePage() {
                       </div>
                       <div>
                         <div className="flex items-center gap-2">
-                          <span className="text-base font-bold text-slate-900">
+                          <span className="text-base font-bold text-slate-900 font-serif">
                             {currentJudge.full_name}
                           </span>
                           <span className="rounded-full bg-sky-100 border border-sky-300 px-2.5 py-0.5 text-[10px] font-mono text-sky-800 font-semibold">
@@ -319,23 +387,69 @@ export default function FeriaHomePage() {
                   </div>
                 )}
 
-                {/* Filter and Search Bar */}
-                <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-                  <div className="relative flex-1 max-w-md">
-                    <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4 text-sky-600">
-                      <SearchIcon size={16} />
+                {/* Filter and Search Bar with Instant Clear & Status Tabs */}
+                <div className="space-y-3">
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+                    <div className="relative flex-1 max-w-md">
+                      <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4 text-sky-600">
+                        <SearchIcon size={16} />
+                      </div>
+                      <input
+                        ref={searchInputRef}
+                        type="text"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        placeholder="Buscar stand, proyecto o integrantes (Presiona '/' para buscar)..."
+                        className="w-full rounded-2xl glass-input pl-11 pr-10 py-2.5 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-sky-400"
+                      />
+                      {searchQuery && (
+                        <button
+                          onClick={() => setSearchQuery('')}
+                          className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600"
+                        >
+                          <CloseIcon size={16} />
+                        </button>
+                      )}
                     </div>
-                    <input
-                      type="text"
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      placeholder="Buscar stand, proyecto o integrantes..."
-                      className="w-full rounded-2xl glass-input pl-11 pr-4 py-2.5 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-sky-400"
-                    />
+
+                    {/* Status Filter Pills */}
+                    <div className="flex items-center gap-1.5 bg-white/70 p-1 rounded-2xl border border-slate-200/80 shadow-xs">
+                      <button
+                        onClick={() => setSelectedStatus('all')}
+                        className={`text-xs px-3 py-1.5 rounded-xl font-semibold transition-all ${
+                          selectedStatus === 'all'
+                            ? 'bg-slate-900 text-white shadow-xs'
+                            : 'text-slate-600 hover:text-slate-900'
+                        }`}
+                      >
+                        Todos ({activeStands.length})
+                      </button>
+                      <button
+                        onClick={() => setSelectedStatus('pending')}
+                        className={`text-xs px-3 py-1.5 rounded-xl font-semibold transition-all ${
+                          selectedStatus === 'pending'
+                            ? 'bg-slate-900 text-white shadow-xs'
+                            : 'text-slate-600 hover:text-slate-900'
+                        }`}
+                      >
+                        Pendientes ({activeStands.length - judgeCompletedCount})
+                      </button>
+                      <button
+                        onClick={() => setSelectedStatus('completed')}
+                        className={`text-xs px-3 py-1.5 rounded-xl font-semibold transition-all ${
+                          selectedStatus === 'completed'
+                            ? 'bg-slate-900 text-white shadow-xs'
+                            : 'text-slate-600 hover:text-slate-900'
+                        }`}
+                      >
+                        Listos ({judgeCompletedCount})
+                      </button>
+                    </div>
                   </div>
 
-                  <div className="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0 scrollbar-none">
-                    <span className="text-xs text-slate-600 flex items-center gap-1 font-medium">
+                  {/* Horizontal Scrollable Categories Carousel */}
+                  <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none snap-x">
+                    <span className="text-xs text-slate-600 flex items-center gap-1 font-medium whitespace-nowrap">
                       <FilterIcon size={13} />
                       Categoría:
                     </span>
@@ -344,7 +458,7 @@ export default function FeriaHomePage() {
                         key={cat}
                         onClick={() => setSelectedCategory(cat)}
                         isActive={selectedCategory === cat}
-                        className="px-3.5 py-1.5 text-xs font-semibold whitespace-nowrap rounded-xl"
+                        className="px-3 py-1.5 text-xs font-semibold whitespace-nowrap rounded-xl snap-start"
                       >
                         {cat}
                       </RippleButton>
@@ -353,46 +467,88 @@ export default function FeriaHomePage() {
                 </div>
 
                 {/* Stands Cards Grid with Interactive 3D Parallax Tilt */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {filteredStands.map((stand) => {
-                    const standEvals = judgeEvaluationsMap.get(stand.id) || [];
-                    const isEvaluated =
-                      standEvals.length >= criteria.length && criteria.length > 0;
+                {filteredStands.length === 0 ? (
+                  <div className="py-16 text-center squircle-card p-8 border border-white/80">
+                    <h3 className="text-base font-bold text-slate-800 font-serif">
+                      No se encontraron stands con los filtros aplicados
+                    </h3>
+                    <p className="text-xs text-slate-500 mt-1 mb-4">
+                      Intenta buscar con otros términos o seleccionar otra categoría.
+                    </p>
+                    <RippleButton
+                      onClick={() => {
+                        setSearchQuery('');
+                        setSelectedCategory('Todas');
+                        setSelectedStatus('all');
+                      }}
+                      className="px-4 py-2 text-xs font-semibold rounded-xl"
+                    >
+                      Restablecer Filtros
+                    </RippleButton>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {filteredStands.map((stand) => {
+                      const standEvals = judgeEvaluationsMap.get(stand.id) || [];
+                      const isEvaluated =
+                        standEvals.length >= criteria.length && criteria.length > 0;
 
-                    let judgeAvg = 0;
-                    if (standEvals.length > 0) {
-                      const total = standEvals.reduce((acc, curr) => acc + Number(curr.score), 0);
-                      judgeAvg = total / standEvals.length;
-                    }
+                      let judgeAvg = 0;
+                      if (standEvals.length > 0) {
+                        const total = standEvals.reduce((acc, curr) => acc + Number(curr.score), 0);
+                        judgeAvg = total / standEvals.length;
+                      }
 
-                    const standImg = stand.image_url || getStandImage(stand.stand_number);
+                      const standImg = stand.image_url || getStandImage(stand.stand_number);
 
-                    return (
-                      <TiltStandCard
-                        key={stand.id}
-                        stand={stand}
-                        criteria={criteria}
-                        standEvaluations={standEvals}
-                        standImg={standImg}
-                        isEvaluated={isEvaluated}
-                        judgeAvg={judgeAvg}
-                        onEvaluate={() => {
-                          if (!currentJudge) {
-                            setIsJudgeModalOpen(true);
-                          } else {
-                            setEvaluatingStand(stand);
+                      return (
+                        <TiltStandCard
+                          key={stand.id}
+                          stand={stand}
+                          criteria={criteria}
+                          standEvaluations={standEvals}
+                          standImg={standImg}
+                          isEvaluated={isEvaluated}
+                          judgeAvg={judgeAvg}
+                          onEvaluate={() => {
+                            if (!currentJudge) {
+                              setIsJudgeModalOpen(true);
+                            } else {
+                              setEvaluatingStand(stand);
+                            }
+                          }}
+                          onOpenImage={(img, name, cat) =>
+                            setLightboxData({
+                              isOpen: true,
+                              imageUrl: img,
+                              name,
+                              category: cat,
+                            })
                           }
-                        }}
-                      />
-                    );
-                  })}
-                </div>
+                          onOpenQR={(st) => setQrModalStand(st)}
+                        />
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             )}
           </div>
         )}
 
-        {/* VIEW 2: ADMIN PANEL */}
+        {/* VIEW 2: PODIUM & OFFICIAL LEADERBOARD DIRECT ACCESS */}
+        {activeView === 'podium' && (
+          <div>
+            <PodiumSection
+              rankings={standRankings}
+              criteria={criteria}
+              totalEvaluationsCount={evaluations.length}
+              totalJudgesCount={judges.filter((j) => j.is_active).length}
+            />
+          </div>
+        )}
+
+        {/* VIEW 3: ADMIN PANEL DASHBOARD */}
         {activeView === 'admin' && (
           <div>
             {isAdmin ? (
@@ -408,11 +564,11 @@ export default function FeriaHomePage() {
             ) : (
               <div className="max-w-md mx-auto py-16 text-center">
                 <div className="glass-panel rounded-3xl p-8 shadow-xl border border-white/80">
-                  <h2 className="text-base font-bold text-slate-900 mb-2">
+                  <h2 className="text-base font-bold text-slate-900 mb-2 font-serif">
                     Acceso Administrativo Restringido
                   </h2>
                   <p className="text-xs text-slate-600 mb-6">
-                    El Panel de Control y el Podio Oficial requieren autenticación del comité evaluador de la UACh.
+                    El Panel de Control y la Gestión Oficial requieren autenticación del comité evaluador de la UACh.
                   </p>
                   <RippleButton
                     onClick={() => setIsAdminModalOpen(true)}
@@ -428,17 +584,41 @@ export default function FeriaHomePage() {
         )}
       </main>
 
-      {/* Footer */}
-      <footer className="border-t border-white/60 bg-white/60 backdrop-blur-md py-6 text-center text-xs text-slate-600">
+      {/* Footer Institucional Oficial UACh (Sin texto ajeno a la institución) */}
+      <footer className="border-t border-slate-200/80 bg-white/70 backdrop-blur-md py-6 text-center text-xs text-slate-700">
         <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-3">
-          <span className="font-medium">Universidad Austral de Chile &bull; Feria de Emprendimiento 2026</span>
-          <span className="text-[11px] text-slate-500 font-mono">
-            Pauta Oficial Institucional &bull; Next.js + Gemini AI + Supabase
+          <div className="flex items-center gap-2">
+            <UniversityShieldIcon size={18} className="text-sky-700" />
+            <span className="font-semibold text-slate-900 font-serif">
+              Universidad Austral de Chile &bull; Feria de Emprendimiento 2026
+            </span>
+          </div>
+          <span className="text-[11px] text-slate-500 font-serif">
+            Facultad de Ciencias Económicas y Administrativas &bull; Escuela de Graduados &bull; Sede Isla Teja, Valdivia
           </span>
         </div>
       </footer>
 
-      {/* Modals */}
+      {/* Mobile Sticky Bottom Navigation (Visible exclusively on mobile phones) */}
+      <MobileBottomNav
+        currentTab={activeView}
+        onChangeTab={(tab) => {
+          setActiveView(tab);
+          setEvaluatingStand(null);
+        }}
+        selectedStandId={evaluatingStand?.id || null}
+        onOpenEvaluation={() => {
+          if (evaluatingStand) return;
+          if (activeStands.length > 0) {
+            setEvaluatingStand(activeStands[0]);
+          }
+        }}
+        isAdmin={isAdmin}
+        onOpenAdminLogin={() => setIsAdminModalOpen(true)}
+        currentJudgeName={currentJudge?.full_name}
+      />
+
+      {/* Global Modals */}
       <JudgeSelectorModal
         isOpen={isJudgeModalOpen}
         judges={judges}
@@ -455,6 +635,26 @@ export default function FeriaHomePage() {
           setActiveView('admin');
         }}
       />
+
+      <StandImageLightbox
+        isOpen={lightboxData.isOpen}
+        imageUrl={lightboxData.imageUrl}
+        standName={lightboxData.name}
+        category={lightboxData.category}
+        onClose={() =>
+          setLightboxData((prev) => ({ ...prev, isOpen: false }))
+        }
+      />
+
+      {qrModalStand && (
+        <StandQRCodeModal
+          isOpen={true}
+          standId={qrModalStand.id}
+          standNumber={Number(qrModalStand.stand_number)}
+          standName={qrModalStand.project_name}
+          onClose={() => setQrModalStand(null)}
+        />
+      )}
     </div>
   );
 }

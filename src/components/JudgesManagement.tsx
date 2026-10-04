@@ -133,62 +133,98 @@ export const JudgesManagement: React.FC<JudgesManagementProps> = ({
       </div>
 
       <div className="rounded-3xl glass-panel overflow-hidden border border-white/80 shadow-md">
-        <table className="w-full text-left text-xs">
-          <thead className="bg-slate-50/80 border-b border-slate-200/80 text-[11px] font-mono uppercase text-slate-500">
-            <tr>
-              <th className="py-3 px-4">Nombre Completo</th>
-              <th className="py-3 px-4">Rol Institucional</th>
-              <th className="py-3 px-4 text-center">Estado</th>
-              <th className="py-3 px-4 text-right">Acciones</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100 text-slate-800">
-            {judges.map((judge) => (
-              <tr key={judge.id} className="hover:bg-white/60 transition-colors">
-                <td className="py-3.5 px-4">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-sky-100 to-purple-100 border border-sky-200 flex items-center justify-center font-bold text-xs text-sky-800 font-mono shadow-sm">
-                      {judge.full_name.substring(0, 2).toUpperCase()}
-                    </div>
-                    <span className="font-semibold text-slate-900">
-                      {judge.full_name}
-                    </span>
-                  </div>
-                </td>
-                <td className="py-3.5 px-4 text-slate-500">
-                  Jurado Titular UACh 2026
-                </td>
-                <td className="py-3.5 px-4 text-center">
-                  <span
-                    className={`inline-block rounded-full px-2.5 py-0.5 text-[10px] font-mono font-bold ${
-                      judge.is_active
-                        ? 'bg-sky-50 text-sky-800 border border-sky-200'
-                        : 'bg-slate-100 text-slate-400 border border-slate-200'
-                    }`}
-                  >
-                    {judge.is_active ? 'Habilitado' : 'Deshabilitado'}
-                  </span>
-                </td>
-                <td className="py-3.5 px-4 text-right space-x-2">
-                  <button
-                    onClick={() => openEditModal(judge)}
-                    className="btn-light-gray p-1.5 rounded-lg inline-block text-slate-600 hover:text-slate-900"
-                    title="Editar Juez"
-                  >
-                    <EditIcon size={15} />
-                  </button>
-                  <button
-                    onClick={() => setJudgeToDelete(judge)}
-                    className="btn-light-gray p-1.5 rounded-lg inline-block text-slate-600 hover:text-red-600"
-                    title="Eliminar Juez"
-                  >
-                    <TrashIcon size={15} />
-                  </button>
-                </td>
+        {/* Mobile View (< 768px): Card Stack */}
+        <div className="md:hidden divide-y divide-slate-100 p-3 space-y-3">
+          {judges.map((judge) => (
+            <div key={judge.id} className="p-3.5 bg-white/80 rounded-2xl border border-slate-100 shadow-xs flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2.5">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-sky-100 to-purple-100 border border-sky-200 flex items-center justify-center font-bold text-xs text-sky-800 font-mono shadow-sm flex-shrink-0">
+                  {judge.full_name.substring(0, 2).toUpperCase()}
+                </div>
+                <div>
+                  <h4 className="text-sm font-bold text-slate-900">{judge.full_name}</h4>
+                  <span className="text-[10px] text-slate-500 font-medium">Jurado Titular UACh</span>
+                </div>
+              </div>
+              <div className="flex items-center gap-1.5 flex-shrink-0">
+                <button
+                  onClick={() => openEditModal(judge)}
+                  className="btn-light-gray min-h-[44px] min-w-[44px] rounded-xl flex items-center justify-center text-slate-700"
+                  title="Editar"
+                >
+                  <EditIcon size={16} />
+                </button>
+                <button
+                  onClick={() => setJudgeToDelete(judge)}
+                  className="btn-light-gray min-h-[44px] min-w-[44px] rounded-xl flex items-center justify-center text-red-600"
+                  title="Eliminar"
+                >
+                  <TrashIcon size={16} />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Desktop View (>= 768px): Full Table */}
+        <div className="hidden md:block overflow-x-auto">
+          <table className="w-full text-left text-xs">
+            <thead className="bg-slate-50/80 border-b border-slate-200/80 text-[11px] font-mono uppercase text-slate-500">
+              <tr>
+                <th className="py-3 px-4">Nombre Completo</th>
+                <th className="py-3 px-4">Rol Institucional</th>
+                <th className="py-3 px-4 text-center">Estado</th>
+                <th className="py-3 px-4 text-right">Acciones</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody className="divide-y divide-slate-100 text-slate-800">
+              {judges.map((judge) => (
+                <tr key={judge.id} className="hover:bg-white/60 transition-colors">
+                  <td className="py-3.5 px-4">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-sky-100 to-purple-100 border border-sky-200 flex items-center justify-center font-bold text-xs text-sky-800 font-mono shadow-sm">
+                        {judge.full_name.substring(0, 2).toUpperCase()}
+                      </div>
+                      <span className="font-semibold text-slate-900">
+                        {judge.full_name}
+                      </span>
+                    </div>
+                  </td>
+                  <td className="py-3.5 px-4 text-slate-500">
+                    Jurado Titular UACh 2026
+                  </td>
+                  <td className="py-3.5 px-4 text-center">
+                    <span
+                      className={`inline-block rounded-full px-2.5 py-0.5 text-[10px] font-mono font-bold ${
+                        judge.is_active
+                          ? 'bg-sky-50 text-sky-800 border border-sky-200'
+                          : 'bg-slate-100 text-slate-400 border border-slate-200'
+                      }`}
+                    >
+                      {judge.is_active ? 'Habilitado' : 'Deshabilitado'}
+                    </span>
+                  </td>
+                  <td className="py-3.5 px-4 text-right space-x-2">
+                    <button
+                      onClick={() => openEditModal(judge)}
+                      className="btn-light-gray p-1.5 rounded-lg inline-block text-slate-600 hover:text-slate-900"
+                      title="Editar Juez"
+                    >
+                      <EditIcon size={15} />
+                    </button>
+                    <button
+                      onClick={() => setJudgeToDelete(judge)}
+                      className="btn-light-gray p-1.5 rounded-lg inline-block text-slate-600 hover:text-red-600"
+                      title="Eliminar Juez"
+                    >
+                      <TrashIcon size={15} />
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {/* Create / Edit Modal */}

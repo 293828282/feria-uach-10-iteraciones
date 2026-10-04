@@ -194,26 +194,15 @@ export const StandsManagement: React.FC<StandsManagementProps> = ({
         </button>
       </div>
 
-      {/* Stands Table */}
+      {/* Stands Container (Mobile Cards + Desktop Table) */}
       <div className="rounded-3xl glass-panel overflow-hidden border border-white/80 shadow-md">
-        <table className="w-full text-left text-xs">
-          <thead className="bg-slate-50 border-b border-slate-200 text-[11px] font-mono uppercase text-slate-600">
-            <tr>
-              <th className="py-3.5 px-4 w-28">Imagen</th>
-              <th className="py-3.5 px-4 w-20">Stand</th>
-              <th className="py-3.5 px-4">Proyecto</th>
-              <th className="py-3.5 px-4">Categoría</th>
-              <th className="py-3.5 px-4">Integrantes</th>
-              <th className="py-3.5 px-4 text-center">Estado</th>
-              <th className="py-3.5 px-4 text-right">Acciones</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-200/80 text-slate-700">
-            {stands.map((stand) => (
-              <tr key={stand.id} className="hover:bg-slate-50/80 transition-colors">
-                {/* Thumbnail Preview */}
-                <td className="py-3 px-4">
-                  <div className="relative w-16 h-11 rounded-xl overflow-hidden bg-slate-100 border border-slate-200 flex items-center justify-center">
+        {/* Mobile View (< 768px): Touch-Friendly Cards */}
+        <div className="md:hidden divide-y divide-slate-100 p-3 space-y-3">
+          {stands.map((stand) => (
+            <div key={stand.id} className="p-3.5 bg-white/80 rounded-2xl border border-slate-100 shadow-xs flex flex-col gap-3">
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="relative w-14 h-12 rounded-xl overflow-hidden bg-slate-100 border border-slate-200 flex-shrink-0 flex items-center justify-center">
                     {stand.image_url ? (
                       <Image
                         src={stand.image_url}
@@ -225,58 +214,131 @@ export const StandsManagement: React.FC<StandsManagementProps> = ({
                       <ImageIcon size={18} className="text-slate-400" />
                     )}
                   </div>
-                </td>
+                  <div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="font-mono font-bold text-sky-800 text-xs">#{stand.stand_number}</span>
+                      <span className="rounded-full bg-purple-50 border border-purple-200 px-2 py-0.2 text-[10px] text-purple-700 font-semibold">
+                        {stand.category || 'General'}
+                      </span>
+                    </div>
+                    <h4 className="text-sm font-bold text-slate-900 line-clamp-1 font-serif">{stand.project_name}</h4>
+                  </div>
+                </div>
+                <span
+                  className={`rounded-full px-2 py-0.5 text-[10px] font-mono font-bold flex-shrink-0 ${
+                    stand.is_active
+                      ? 'bg-sky-100 text-sky-800 border border-sky-300'
+                      : 'bg-slate-100 text-slate-500 border border-slate-200'
+                  }`}
+                >
+                  {stand.is_active ? 'Activo' : 'Pausado'}
+                </span>
+              </div>
+              <p className="text-xs text-slate-600 line-clamp-2">{stand.team_members}</p>
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+                <button
+                  onClick={() => openEditModal(stand)}
+                  className="btn-light-gray min-h-[44px] px-3 rounded-xl inline-flex items-center gap-1.5 text-xs text-slate-700"
+                >
+                  <EditIcon size={14} />
+                  <span>Editar</span>
+                </button>
+                <button
+                  onClick={() => setStandToDelete(stand)}
+                  className="btn-light-gray min-h-[44px] px-3 rounded-xl inline-flex items-center gap-1.5 text-xs text-red-600"
+                >
+                  <TrashIcon size={14} />
+                  <span>Eliminar</span>
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
 
-                <td className="py-3.5 px-4 font-mono font-bold text-sky-800">
-                  #{stand.stand_number}
-                </td>
-
-                <td className="py-3.5 px-4 font-bold text-slate-900">
-                  {stand.project_name}
-                </td>
-
-                <td className="py-3.5 px-4">
-                  <span className="rounded-full bg-purple-50 border border-purple-200 px-2.5 py-0.5 text-[11px] text-purple-700 font-semibold">
-                    {stand.category || 'General'}
-                  </span>
-                </td>
-
-                <td className="py-3.5 px-4 text-slate-600 max-w-xs truncate">
-                  {stand.team_members}
-                </td>
-
-                <td className="py-3.5 px-4 text-center">
-                  <span
-                    className={`inline-block rounded-full px-2.5 py-0.5 text-[10px] font-mono font-bold ${
-                      stand.is_active
-                        ? 'bg-sky-100 text-sky-800 border border-sky-300'
-                        : 'bg-slate-100 text-slate-500 border border-slate-200'
-                    }`}
-                  >
-                    {stand.is_active ? 'Activo' : 'Pausado'}
-                  </span>
-                </td>
-
-                <td className="py-3.5 px-4 text-right space-x-2">
-                  <button
-                    onClick={() => openEditModal(stand)}
-                    className="btn-light-gray p-1.5 rounded-lg inline-block text-slate-600 hover:text-slate-900"
-                    title="Editar Stand e Imagen"
-                  >
-                    <EditIcon size={15} />
-                  </button>
-                  <button
-                    onClick={() => setStandToDelete(stand)}
-                    className="btn-light-gray p-1.5 rounded-lg inline-block text-slate-600 hover:text-red-600"
-                    title="Eliminar Stand"
-                  >
-                    <TrashIcon size={15} />
-                  </button>
-                </td>
+        {/* Desktop View (>= 768px): Full Table */}
+        <div className="hidden md:block overflow-x-auto">
+          <table className="w-full text-left text-xs">
+            <thead className="bg-slate-50 border-b border-slate-200 text-[11px] font-mono uppercase text-slate-600">
+              <tr>
+                <th className="py-3.5 px-4 w-28">Imagen</th>
+                <th className="py-3.5 px-4 w-20">Stand</th>
+                <th className="py-3.5 px-4">Proyecto</th>
+                <th className="py-3.5 px-4">Categoría</th>
+                <th className="py-3.5 px-4">Integrantes</th>
+                <th className="py-3.5 px-4 text-center">Estado</th>
+                <th className="py-3.5 px-4 text-right">Acciones</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody className="divide-y divide-slate-200/80 text-slate-700">
+              {stands.map((stand) => (
+                <tr key={stand.id} className="hover:bg-slate-50/80 transition-colors">
+                  {/* Thumbnail Preview */}
+                  <td className="py-3 px-4">
+                    <div className="relative w-16 h-11 rounded-xl overflow-hidden bg-slate-100 border border-slate-200 flex items-center justify-center">
+                      {stand.image_url ? (
+                        <Image
+                          src={stand.image_url}
+                          alt={stand.project_name}
+                          fill
+                          className="object-cover"
+                        />
+                      ) : (
+                        <ImageIcon size={18} className="text-slate-400" />
+                      )}
+                    </div>
+                  </td>
+
+                  <td className="py-3.5 px-4 font-mono font-bold text-sky-800">
+                    #{stand.stand_number}
+                  </td>
+
+                  <td className="py-3.5 px-4 font-bold text-slate-900 font-serif">
+                    {stand.project_name}
+                  </td>
+
+                  <td className="py-3.5 px-4">
+                    <span className="rounded-full bg-purple-50 border border-purple-200 px-2.5 py-0.5 text-[11px] text-purple-700 font-semibold">
+                      {stand.category || 'General'}
+                    </span>
+                  </td>
+
+                  <td className="py-3.5 px-4 text-slate-600 max-w-xs truncate">
+                    {stand.team_members}
+                  </td>
+
+                  <td className="py-3.5 px-4 text-center">
+                    <span
+                      className={`inline-block rounded-full px-2.5 py-0.5 text-[10px] font-mono font-bold ${
+                        stand.is_active
+                          ? 'bg-sky-100 text-sky-800 border border-sky-300'
+                          : 'bg-slate-100 text-slate-500 border border-slate-200'
+                      }`}
+                    >
+                      {stand.is_active ? 'Activo' : 'Pausado'}
+                    </span>
+                  </td>
+
+                  <td className="py-3.5 px-4 text-right space-x-2">
+                    <button
+                      onClick={() => openEditModal(stand)}
+                      className="btn-light-gray p-1.5 rounded-lg inline-block text-slate-600 hover:text-slate-900"
+                      title="Editar Stand e Imagen"
+                    >
+                      <EditIcon size={15} />
+                    </button>
+                    <button
+                      onClick={() => setStandToDelete(stand)}
+                      className="btn-light-gray p-1.5 rounded-lg inline-block text-slate-600 hover:text-red-600"
+                      title="Eliminar Stand"
+                    >
+                      <TrashIcon size={15} />
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {/* Create / Edit Modal with Image Attachment Dropzone */}
