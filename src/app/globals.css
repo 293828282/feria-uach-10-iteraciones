@@ -1,0 +1,232 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #dff0fe;
+  --foreground: #0f172a;
+}
+
+body {
+  color: var(--foreground);
+  background-color: #dff0fe;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  min-height: 100vh;
+  margin: 0;
+  padding: 0;
+  -webkit-font-smoothing: antialiased;
+  background-image: 
+    radial-gradient(circle at 10% 12%, rgba(186, 230, 253, 0.95) 0%, transparent 45%),
+    radial-gradient(circle at 90% 15%, rgba(233, 213, 255, 0.9) 0%, transparent 45%),
+    radial-gradient(circle at 50% 50%, rgba(224, 242, 254, 0.7) 0%, transparent 55%),
+    radial-gradient(circle at 15% 85%, rgba(243, 232, 255, 0.95) 0%, transparent 45%),
+    radial-gradient(circle at 85% 85%, rgba(199, 210, 254, 0.85) 0%, transparent 50%);
+  background-attachment: fixed;
+}
+
+/* Velvet Glassmorphism & Squircle Styles (Celeste con aspectos Lilas) */
+.squircle-card {
+  border-radius: 28px;
+  background: rgba(255, 255, 255, 0.78);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  box-shadow: 
+    0 20px 40px -15px rgba(56, 189, 248, 0.16),
+    0 8px 20px -6px rgba(192, 132, 252, 0.12),
+    inset 0 1px 1.5px 0 rgba(255, 255, 255, 0.95);
+  transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.squircle-card:hover {
+  background: rgba(255, 255, 255, 0.92);
+  border-color: rgba(56, 189, 248, 0.5);
+  transform: translateY(-3px);
+  box-shadow: 
+    0 26px 50px -12px rgba(56, 189, 248, 0.22),
+    0 12px 28px -4px rgba(192, 132, 252, 0.18),
+    inset 0 1px 2px 0 rgba(255, 255, 255, 1);
+}
+
+.glass-panel {
+  border-radius: 28px;
+  background: rgba(255, 255, 255, 0.82);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  box-shadow: 
+    0 16px 36px -8px rgba(56, 189, 248, 0.14), 
+    0 6px 18px -2px rgba(192, 132, 252, 0.1),
+    inset 0 1px 1.5px 0 rgba(255, 255, 255, 0.9);
+}
+
+.glass-card {
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.76);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border: 1px solid rgba(255, 255, 255, 0.88);
+  box-shadow: 
+    0 10px 28px -6px rgba(14, 116, 144, 0.08), 
+    0 4px 12px -2px rgba(147, 51, 234, 0.06),
+    inset 0 1px 1px 0 rgba(255, 255, 255, 0.9);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.glass-card:hover {
+  background: rgba(255, 255, 255, 0.94);
+  border-color: rgba(56, 189, 248, 0.55);
+  transform: translateY(-2px);
+  box-shadow: 
+    0 18px 36px -6px rgba(56, 189, 248, 0.2), 
+    0 8px 18px -2px rgba(192, 132, 252, 0.15),
+    inset 0 1px 1.5px 0 rgba(255, 255, 255, 1);
+}
+
+.glass-input {
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid #cbd5e1;
+  color: #0f172a;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.glass-input:focus {
+  border-color: #38bdf8;
+  background: #ffffff;
+  box-shadow: 0 0 0 3px rgba(192, 132, 252, 0.25), 0 4px 12px rgba(56, 189, 248, 0.1);
+}
+
+/* Botones Gris Claro Mejorados (Bordes Suaves Squircle & Micro-relieve) */
+.btn-light-gray {
+  border-radius: 16px;
+  background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+  color: #1e293b;
+  border: 1px solid #cbd5e1;
+  box-shadow: 
+    0 2px 4px 0 rgba(15, 23, 42, 0.04),
+    inset 0 1px 1px 0 rgba(255, 255, 255, 0.9);
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-light-gray:hover {
+  background: linear-gradient(180deg, #ffffff 0%, #e2e8f0 100%);
+  color: #0f172a;
+  border-color: #94a3b8;
+  box-shadow: 
+    0 6px 14px -2px rgba(56, 189, 248, 0.16),
+    0 2px 6px -1px rgba(192, 132, 252, 0.12),
+    inset 0 1px 1.5px 0 rgba(255, 255, 255, 1);
+  transform: translateY(-1.5px);
+}
+
+.btn-light-gray:active {
+  transform: translateY(0.5px);
+  background: #cbd5e1;
+  box-shadow: inset 0 2px 4px 0 rgba(15, 23, 42, 0.08);
+}
+
+.btn-light-gray-active {
+  border-radius: 16px;
+  background: linear-gradient(180deg, #f1f5f9 0%, #e2e8f0 100%);
+  color: #0f172a;
+  border: 1.5px solid #0284c7;
+  box-shadow: 
+    0 0 0 3px rgba(56, 189, 248, 0.25),
+    inset 0 2px 4px 0 rgba(15, 23, 42, 0.08),
+    inset 0 1px 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+/* Minimal Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: rgba(224, 242, 254, 0.6);
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.5);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(100, 116, 139, 0.7);
+}
+
+/* Keyframe Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.32s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Floating Animation */
+@keyframes softFloat {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+.animate-soft-float {
+  animation: softFloat 4s ease-in-out infinite;
+}
+
+/* Shimmer Light Reflection Effect */
+.shimmer-effect {
+  position: relative;
+  overflow: hidden;
+}
+
+.shimmer-effect::after {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: linear-gradient(
+    60deg,
+    transparent 30%,
+    rgba(255, 255, 255, 0.4) 50%,
+    transparent 70%
+  );
+  transform: rotate(25deg) translateY(-100%);
+  transition: transform 0.75s ease-in-out;
+  pointer-events: none;
+}
+
+.shimmer-effect:hover::after {
+  transform: rotate(25deg) translateY(100%);
+}
+
+/* Button Kinetic Ripple Animation */
+@keyframes rippleAnimation {
+  0% {
+    transform: scale(0);
+    opacity: 0.7;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 0;
+  }
+}
+
+.animate-ripple {
+  animation: rippleAnimation 0.65s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}

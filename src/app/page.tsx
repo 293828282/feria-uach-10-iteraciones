@@ -1,0 +1,460 @@
+'use client';
+
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import Image from 'next/image';
+import { supabase } from '@/lib/supabase';
+import {
+  Stand,
+  Judge,
+  EvaluationCriteria,
+  Evaluation,
+  StandEvaluationSummary,
+} from '@/types/database';
+import { Navbar } from '@/components/Navbar';
+import { WelcomeJudgeGate } from '@/components/WelcomeJudgeGate';
+import { JudgeSelectorModal } from '@/components/JudgeSelectorModal';
+import { AdminLoginModal } from '@/components/AdminLoginModal';
+import { StandEvaluationForm } from '@/components/StandEvaluationForm';
+import { AdminDashboard } from '@/components/AdminDashboard';
+import { TiltStandCard } from '@/components/TiltStandCard';
+import { RippleButton } from '@/components/ui/RippleButton';
+import {
+  SearchIcon,
+  FilterIcon,
+  CheckIcon,
+  ChevronRightIcon,
+} from '@/components/ui/vectors';
+
+function getStandImage(standNumber: string) {
+  const clean = standNumber.replace(/\D/g, '').padStart(2, '0');
+  const valid = ['01', '02', '03', '04', '05', '06'];
+  return valid.includes(clean) ? `/stands/stand-${clean}.jpg` : '/stands/stand-01.jpg';
+}
+
+export default function FeriaHomePage() {
+  const [stands, setStands] = useState<Stand[]>([]);
+  const [judges, setJudges] = useState<Judge[]>([]);
+  const [criteria, setCriteria] = useState<EvaluationCriteria[]>([]);
+  const [evaluations, setEvaluations] = useState<Evaluation[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  // Active Context: initial judge is null to ensure the welcome identification gate is shown!
+  const [currentJudge, setCurrentJudge] = useState<Judge | null>(null);
+  const [activeView, setActiveView] = useState<'judge' | 'admin'>('judge');
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  // Modals
+  const [isJudgeModalOpen, setIsJudgeModalOpen] = useState(false);
+  const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
+
+  // Stand being evaluated
+  const [evaluatingStand, setEvaluatingStand] = useState<Stand | null>(null);
+
+  // Search & Filter
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState<string>('Todas');
+
+  // Load all data from Supabase
+  const loadData = useCallback(async () => {
+    setIsLoading(true);
+    setErrorMsg(null);
+    try {
+      const [standsRes, judgesRes, criteriaRes, evaluationsRes] = await Promise.all([
+        supabase.from('stands').select('*').order('stand_number', { ascending: true }),
+        supabase.from('judges').select('*').order('full_name', { ascending: true }),
+        supabase.from('evaluation_criteria').select('*').order('order_index', { ascending: true }),
+        supabase.from('evaluations').select('*'),
+      ]);
+
+      if (standsRes.error) throw standsRes.error;
+      if (judgesRes.error) throw judgesRes.error;
+      if (criteriaRes.error) throw criteriaRes.error;
+      if (evaluationsRes.error) throw evaluationsRes.error;
+
+      setStands(standsRes.data || []);
+      setJudges(judgesRes.data || []);
+      setCriteria(criteriaRes.data || []);
+      setEvaluations(evaluationsRes.data || []);
+
+      // Check if judge was previously chosen in current browser session
+      if (typeof window !== 'undefined') {
+        const storedJudgeId = localStorage.getItem('uach_judge_id_2026');
+        if (storedJudgeId && judgesRes.data) {
+          const matched = judgesRes.data.find((j: Judge) => j.id === storedJudgeId);
+          if (matched) {
+            setCurrentJudge(matched);
+          }
+        }
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Error al conectar con Supabase.';
+      setErrorMsg(msg);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  // Handle select judge
+  const handleSelectJudge = (judge: Judge) => {
+    setCurrentJudge(judge);
+    setActiveView('judge');
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('uach_judge_id_2026', judge.id);
+    }
+  };
+
+  const handleClearJudge = () => {
+    setCurrentJudge(null);
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('uach_judge_id_2026');
+    }
+  };
+
+  // Categories list
+  const categories = useMemo(() => {
+    const set = new Set<string>();
+    stands.forEach((s) => {
+      if (s.category) set.add(s.category);
+    });
+    return ['Todas', ...Array.from(set)];
+  }, [stands]);
+
+  const activeStands = useMemo(() => stands.filter((s) => s.is_active), [stands]);
+
+  const filteredStands = useMemo(() => {
+    return activeStands.filter((s) => {
+      const query = searchQuery.toLowerCase();
+      const matchesSearch =
+        s.project_name.toLowerCase().includes(query) ||
+        s.stand_number.toLowerCase().includes(query) ||
+        (s.team_members && s.team_members.toLowerCase().includes(query));
+
+      const matchesCat = selectedCategory === 'Todas' || s.category === selectedCategory;
+      return matchesSearch && matchesCat;
+    });
+  }, [activeStands, searchQuery, selectedCategory]);
+
+  // Evaluations by current judge
+  const judgeEvaluationsMap = useMemo(() => {
+    const map = new Map<string, Evaluation[]>();
+    if (!currentJudge) return map;
+
+    evaluations.forEach((ev) => {
+      if (ev.judge_id === currentJudge.id) {
+        const list = map.get(ev.stand_id) || [];
+        list.push(ev);
+        map.set(ev.stand_id, list);
+      }
+    });
+    return map;
+  }, [evaluations, currentJudge]);
+
+  const judgeCompletedCount = useMemo(() => {
+    let count = 0;
+    activeStands.forEach((stand) => {
+      const evs = judgeEvaluationsMap.get(stand.id);
+      if (evs && evs.length >= criteria.length && criteria.length > 0) {
+        count += 1;
+      }
+    });
+    return count;
+  }, [activeStands, judgeEvaluationsMap, criteria.length]);
+
+  // Stand rankings for Admin
+  const standRankings: StandEvaluationSummary[] = useMemo(() => {
+    return activeStands.map((stand) => {
+      const standEvals = evaluations.filter((ev) => ev.stand_id === stand.id);
+      const uniqueJudges = new Set(standEvals.map((e) => e.judge_id));
+      const feedbacks: string[] = [];
+      const criteriaScoresMap: { [criteriaId: string]: number } = {};
+
+      criteria.forEach((crit) => {
+        const critEvals = standEvals.filter((e) => e.criteria_id === crit.id);
+        if (critEvals.length > 0) {
+          const sum = critEvals.reduce((acc, curr) => acc + Number(curr.score), 0);
+          criteriaScoresMap[crit.id] = sum / critEvals.length;
+        }
+      });
+
+      let totalWeightedScore = 0;
+      let totalWeight = 0;
+      let rawScoreSum = 0;
+      let rawCount = 0;
+
+      criteria.forEach((crit) => {
+        const avg = criteriaScoresMap[crit.id];
+        if (avg !== undefined) {
+          const w = Number(crit.weight) || 1.0;
+          totalWeightedScore += avg * w;
+          totalWeight += w;
+          rawScoreSum += avg;
+          rawCount += 1;
+        }
+      });
+
+      standEvals.forEach((ev) => {
+        if (ev.feedback && !feedbacks.includes(ev.feedback)) {
+          feedbacks.push(ev.feedback);
+        }
+      });
+
+      const weightedScore = totalWeight > 0 ? totalWeightedScore / totalWeight : 0;
+      const rawAverage = rawCount > 0 ? rawScoreSum / rawCount : 0;
+
+      return {
+        stand,
+        evaluationsCount: standEvals.length,
+        judgesCount: uniqueJudges.size,
+        weightedScore,
+        rawAverage,
+        criteriaScores: criteriaScoresMap,
+        feedbacks,
+      };
+    }).sort((a, b) => {
+      if (b.weightedScore !== a.weightedScore) {
+        return b.weightedScore - a.weightedScore;
+      }
+      return b.judgesCount - a.judgesCount;
+    });
+  }, [activeStands, evaluations, criteria]);
+
+  // 1. Initial Gate: If no judge is selected and not in admin view, show the "¿Qué juez eres tú?" gate!
+  if (!currentJudge && activeView !== 'admin' && !isLoading) {
+    return (
+      <WelcomeJudgeGate
+        judges={judges}
+        onSelectJudge={handleSelectJudge}
+        onOpenAdmin={() => setIsAdminModalOpen(true)}
+        onRefreshJudges={loadData}
+      />
+    );
+  }
+
+  return (
+    <div className="min-h-screen text-slate-800 flex flex-col justify-between">
+      {/* Top Institutional Navbar */}
+      <Navbar
+        currentJudge={currentJudge}
+        onOpenJudgeSelector={() => setIsJudgeModalOpen(true)}
+        onClearJudge={handleClearJudge}
+        isAdmin={isAdmin}
+        onOpenAdminModal={() => setIsAdminModalOpen(true)}
+        onLogoutAdmin={() => {
+          setIsAdmin(false);
+          setActiveView('judge');
+        }}
+        activeView={activeView}
+        setActiveView={setActiveView}
+      />
+
+      {/* Main Content */}
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 flex-1 w-full">
+        {errorMsg && (
+          <div className="mb-6 rounded-2xl border border-red-500/40 bg-red-50 px-4 py-3 text-xs text-red-700">
+            {errorMsg}
+          </div>
+        )}
+
+        {/* VIEW 1: JUDGE ENVIRONMENT */}
+        {activeView === 'judge' && (
+          <div>
+            {evaluatingStand && currentJudge ? (
+              <StandEvaluationForm
+                stand={evaluatingStand}
+                judge={currentJudge}
+                criteria={criteria.filter((c) => c.is_active)}
+                existingEvaluations={judgeEvaluationsMap.get(evaluatingStand.id) || []}
+                onBack={() => setEvaluatingStand(null)}
+                onEvaluationSaved={() => {
+                  setEvaluatingStand(null);
+                  loadData();
+                }}
+              />
+            ) : (
+              <div className="space-y-6">
+                {/* Active Judge Status Card */}
+                {currentJudge && (
+                  <div className="glass-panel rounded-3xl p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div className="flex items-center gap-3.5">
+                      <div className="w-12 h-12 rounded-2xl bg-sky-100 border border-sky-300 flex items-center justify-center font-bold font-mono text-sky-800 text-sm flex-shrink-0 shadow-sm">
+                        {currentJudge.full_name.substring(0, 2).toUpperCase()}
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-base font-bold text-slate-900">
+                            {currentJudge.full_name}
+                          </span>
+                          <span className="rounded-full bg-sky-100 border border-sky-300 px-2.5 py-0.5 text-[10px] font-mono text-sky-800 font-semibold">
+                            Jurado Oficial
+                          </span>
+                        </div>
+                        <p className="text-xs text-slate-600 mt-0.5">
+                          Selecciona un stand del catálogo para ingresar la evaluación.
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-4">
+                      <div className="text-right">
+                        <span className="block text-[10px] font-mono uppercase text-slate-500">
+                          Tu Progreso
+                        </span>
+                        <span className="block text-base font-bold font-mono tabular-nums text-slate-900">
+                          {judgeCompletedCount} de {activeStands.length} Stands
+                        </span>
+                      </div>
+
+                      <RippleButton
+                        onClick={handleClearJudge}
+                        className="rounded-xl px-3.5 py-2 text-xs font-semibold"
+                      >
+                        Cambiar Juez
+                      </RippleButton>
+                    </div>
+                  </div>
+                )}
+
+                {/* Filter and Search Bar */}
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+                  <div className="relative flex-1 max-w-md">
+                    <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4 text-sky-600">
+                      <SearchIcon size={16} />
+                    </div>
+                    <input
+                      type="text"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder="Buscar stand, proyecto o integrantes..."
+                      className="w-full rounded-2xl glass-input pl-11 pr-4 py-2.5 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-sky-400"
+                    />
+                  </div>
+
+                  <div className="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0 scrollbar-none">
+                    <span className="text-xs text-slate-600 flex items-center gap-1 font-medium">
+                      <FilterIcon size={13} />
+                      Categoría:
+                    </span>
+                    {categories.map((cat) => (
+                      <RippleButton
+                        key={cat}
+                        onClick={() => setSelectedCategory(cat)}
+                        isActive={selectedCategory === cat}
+                        className="px-3.5 py-1.5 text-xs font-semibold whitespace-nowrap rounded-xl"
+                      >
+                        {cat}
+                      </RippleButton>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Stands Cards Grid with Interactive 3D Parallax Tilt */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {filteredStands.map((stand) => {
+                    const standEvals = judgeEvaluationsMap.get(stand.id) || [];
+                    const isEvaluated =
+                      standEvals.length >= criteria.length && criteria.length > 0;
+
+                    let judgeAvg = 0;
+                    if (standEvals.length > 0) {
+                      const total = standEvals.reduce((acc, curr) => acc + Number(curr.score), 0);
+                      judgeAvg = total / standEvals.length;
+                    }
+
+                    const standImg = stand.image_url || getStandImage(stand.stand_number);
+
+                    return (
+                      <TiltStandCard
+                        key={stand.id}
+                        stand={stand}
+                        criteria={criteria}
+                        standEvaluations={standEvals}
+                        standImg={standImg}
+                        isEvaluated={isEvaluated}
+                        judgeAvg={judgeAvg}
+                        onEvaluate={() => {
+                          if (!currentJudge) {
+                            setIsJudgeModalOpen(true);
+                          } else {
+                            setEvaluatingStand(stand);
+                          }
+                        }}
+                      />
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* VIEW 2: ADMIN PANEL */}
+        {activeView === 'admin' && (
+          <div>
+            {isAdmin ? (
+              <AdminDashboard
+                stands={stands}
+                judges={judges}
+                criteria={criteria}
+                evaluations={evaluations}
+                rankings={standRankings}
+                onRefresh={loadData}
+                isLoading={isLoading}
+              />
+            ) : (
+              <div className="max-w-md mx-auto py-16 text-center">
+                <div className="glass-panel rounded-3xl p-8 shadow-xl border border-white/80">
+                  <h2 className="text-base font-bold text-slate-900 mb-2">
+                    Acceso Administrativo Restringido
+                  </h2>
+                  <p className="text-xs text-slate-600 mb-6">
+                    El Panel de Control y el Podio Oficial requieren autenticación del comité evaluador de la UACh.
+                  </p>
+                  <RippleButton
+                    onClick={() => setIsAdminModalOpen(true)}
+                    isActive={true}
+                    className="rounded-xl px-5 py-2.5 text-xs font-bold"
+                  >
+                    Ingresar Clave de Acceso
+                  </RippleButton>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </main>
+
+      {/* Footer */}
+      <footer className="border-t border-white/60 bg-white/60 backdrop-blur-md py-6 text-center text-xs text-slate-600">
+        <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-3">
+          <span className="font-medium">Universidad Austral de Chile &bull; Feria de Emprendimiento 2026</span>
+          <span className="text-[11px] text-slate-500 font-mono">
+            Pauta Oficial Institucional &bull; Next.js + Gemini AI + Supabase
+          </span>
+        </div>
+      </footer>
+
+      {/* Modals */}
+      <JudgeSelectorModal
+        isOpen={isJudgeModalOpen}
+        judges={judges}
+        currentJudge={currentJudge}
+        onSelectJudge={handleSelectJudge}
+        onClose={() => setIsJudgeModalOpen(false)}
+      />
+
+      <AdminLoginModal
+        isOpen={isAdminModalOpen}
+        onClose={() => setIsAdminModalOpen(false)}
+        onSuccess={() => {
+          setIsAdmin(true);
+          setActiveView('admin');
+        }}
+      />
+    </div>
+  );
+}
