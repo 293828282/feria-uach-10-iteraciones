@@ -20,6 +20,7 @@ import { WelcomeJudgeGate } from '@/components/WelcomeJudgeGate';
 import { MobileBottomNav } from '@/components/MobileBottomNav';
 import { StandImageLightbox } from '@/components/StandImageLightbox';
 import { StandQRCodeModal } from '@/components/StandQRCodeModal';
+import { StandDetailSheet } from '@/components/StandDetailSheet';
 import {
   SearchIcon,
   FilterIcon,
@@ -74,6 +75,7 @@ export default function Home() {
     category: '',
   });
   const [qrModalStand, setQrModalStand] = useState<Stand | null>(null);
+  const [detailSheetStand, setDetailSheetStand] = useState<Stand | null>(null);
 
   // Global keyboard shortcut '/' to focus search
   useEffect(() => {
@@ -453,16 +455,22 @@ export default function Home() {
                       <FilterIcon size={13} />
                       Categoría:
                     </span>
-                    {categories.map((cat) => (
-                      <RippleButton
-                        key={cat}
-                        onClick={() => setSelectedCategory(cat)}
-                        isActive={selectedCategory === cat}
-                        className="px-3 py-1.5 text-xs font-semibold whitespace-nowrap rounded-xl snap-start"
-                      >
-                        {cat}
-                      </RippleButton>
-                    ))}
+                    {categories.map((cat) => {
+                      const count =
+                        cat === 'Todas'
+                          ? activeStands.length
+                          : activeStands.filter((s) => s.category === cat).length;
+                      return (
+                        <RippleButton
+                          key={cat}
+                          onClick={() => setSelectedCategory(cat)}
+                          isActive={selectedCategory === cat}
+                          className="px-3 py-1.5 text-xs font-semibold whitespace-nowrap rounded-xl snap-start"
+                        >
+                          {cat} ({count})
+                        </RippleButton>
+                      );
+                    })}
                   </div>
                 </div>
 
@@ -526,6 +534,7 @@ export default function Home() {
                             })
                           }
                           onOpenQR={(st) => setQrModalStand(st)}
+                          onOpenSheet={() => setDetailSheetStand(stand)}
                         />
                       );
                     })}
@@ -594,7 +603,7 @@ export default function Home() {
             </span>
           </div>
           <span className="text-[11px] text-slate-500 font-serif">
-            Facultad de Ciencias Económicas y Administrativas &bull; Escuela de Graduados &bull; Sede Isla Teja, Valdivia
+            Facultad de Ciencias Económicas y Administrativas &bull; Escuela de Graduados &bull; Sede Puerto Montt, Región de Los Lagos
           </span>
         </div>
       </footer>
@@ -655,6 +664,32 @@ export default function Home() {
           onClose={() => setQrModalStand(null)}
         />
       )}
+
+      {/* Stand Technical Detail Sheet */}
+      <StandDetailSheet
+        isOpen={!!detailSheetStand}
+        stand={detailSheetStand}
+        criteria={criteria}
+        evaluations={evaluations.filter((ev) => ev.stand_id === detailSheetStand?.id)}
+        onClose={() => setDetailSheetStand(null)}
+        onStartEvaluation={(st) => {
+          setDetailSheetStand(null);
+          if (!currentJudge) {
+            setIsJudgeModalOpen(true);
+          } else {
+            setEvaluatingStand(st);
+          }
+        }}
+        onOpenImage={(img, name, cat) =>
+          setLightboxData({
+            isOpen: true,
+            imageUrl: img,
+            name,
+            category: cat,
+          })
+        }
+        onOpenQR={(st) => setQrModalStand(st)}
+      />
     </div>
   );
 }

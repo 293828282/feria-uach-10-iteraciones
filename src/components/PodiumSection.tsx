@@ -72,6 +72,44 @@ export const PodiumSection: React.FC<PodiumSectionProps> = ({
     return map;
   }, [criteria, scoredStands]);
 
+  // Econometric metrics for institutional analysis
+  const { standardDeviation, medianScore, consensusRate, topCriterionName } = useMemo(() => {
+    if (scoredStands.length === 0) {
+      return {
+        standardDeviation: 0,
+        medianScore: 0,
+        consensusRate: 100,
+        topCriterionName: 'Ponderación general',
+      };
+    }
+
+    const scores = scoredStands.map((s) => s.weightedScore).sort((a, b) => a - b);
+    const mean = scores.reduce((a, b) => a + b, 0) / scores.length;
+
+    const variance = scores.reduce((acc, val) => acc + Math.pow(val - mean, 2), 0) / scores.length;
+    const std = Math.sqrt(variance);
+
+    const mid = Math.floor(scores.length / 2);
+    const median = scores.length % 2 !== 0 ? scores[mid] : (scores[mid - 1] + scores[mid]) / 2;
+
+    const consensus = mean > 0 ? Math.max(0, Math.min(100, (1 - std / mean) * 100)) : 100;
+
+    let topCrit = { name: '', score: -1 };
+    criteria.forEach((c) => {
+      const avg = cohortScores[c.id];
+      if (avg !== undefined && avg > topCrit.score) {
+        topCrit = { name: c.question_text, score: avg };
+      }
+    });
+
+    return {
+      standardDeviation: std,
+      medianScore: median,
+      consensusRate: consensus,
+      topCriterionName: topCrit.name || 'Ponderación general',
+    };
+  }, [scoredStands, criteria, cohortScores]);
+
   const handlePrint = () => {
     window.print();
   };
@@ -119,12 +157,67 @@ export const PodiumSection: React.FC<PodiumSectionProps> = ({
         </div>
       </div>
 
+      {/* Econometric Analytics Ribbon */}
+      <div className="squircle-card p-4 sm:p-5 border border-sky-100 bg-gradient-to-r from-sky-50/70 via-white/80 to-purple-50/70 shadow-xs">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="flex items-center gap-2">
+            <ChartBarIcon size={18} className="text-sky-700 flex-shrink-0" />
+            <div>
+              <span className="text-xs font-bold text-slate-800 font-serif block">
+                Monitor Econométrico & Consenso de Evaluación UACh &bull; Sede Puerto Montt
+              </span>
+              <span className="text-[11px] text-slate-500">
+                Dispersión estadística y alineación metodológica del cuerpo de jurados
+              </span>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+            <div className="bg-white/80 rounded-xl p-2.5 border border-slate-200/80">
+              <span className="block text-[9.5px] uppercase font-mono text-slate-500">
+                Dispersión (&sigma;)
+              </span>
+              <span className="font-mono font-bold text-slate-900 text-sm">
+                &plusmn;{standardDeviation.toFixed(2)} pts
+              </span>
+            </div>
+
+            <div className="bg-white/80 rounded-xl p-2.5 border border-slate-200/80">
+              <span className="block text-[9.5px] uppercase font-mono text-slate-500">
+                Mediana Ponderada
+              </span>
+              <span className="font-mono font-bold text-slate-900 text-sm">
+                {medianScore > 0 ? medianScore.toFixed(2) : '---'}
+              </span>
+            </div>
+
+            <div className="bg-white/80 rounded-xl p-2.5 border border-slate-200/80">
+              <span className="block text-[9.5px] uppercase font-mono text-slate-500">
+                Consenso Inter-Juez
+              </span>
+              <span className="font-mono font-bold text-emerald-800 text-sm">
+                {consensusRate.toFixed(1)}%
+              </span>
+            </div>
+
+            <div className="bg-white/80 rounded-xl p-2.5 border border-slate-200/80">
+              <span className="block text-[9.5px] uppercase font-mono text-slate-500">
+                Criterio Líder
+              </span>
+              <span className="font-semibold text-sky-900 text-xs truncate block" title={topCriterionName}>
+                {topCriterionName}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Official Winners Podium Header & Action Buttons */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-sky-200/60 pb-4">
         <div>
           <h2 className="text-xl font-bold text-slate-900 tracking-tight flex items-center gap-2 font-serif">
             <AwardTrophyIcon className="text-amber-500" size={24} />
-            <span>Podio Oficial de Emprendimiento UACh 2026</span>
+            <span>Podio Oficial de Emprendimiento UACh 2026 &bull; Sede Puerto Montt</span>
           </h2>
           <p className="text-xs text-slate-600">
             Determinación algorítmica de los mejores proyectos según la matriz de ponderación institucional
@@ -141,19 +234,11 @@ export const PodiumSection: React.FC<PodiumSectionProps> = ({
           </RippleButton>
 
           <RippleButton
-            onClick={firePodiumVictoryConfetti}
-            className="px-3.5 py-2 text-xs font-semibold rounded-xl text-purple-900 border-purple-200"
-          >
-            <ConfettiSparkleIcon size={16} className="text-purple-600" />
-            <span>Celebrar</span>
-          </RippleButton>
-
-          <RippleButton
             onClick={handlePrint}
             className="flex items-center gap-2 px-3.5 py-2 text-xs font-semibold rounded-xl"
           >
             <ExportIcon size={15} />
-            <span>Imprimir Acta</span>
+            <span>Imprimir Acta Oficial</span>
           </RippleButton>
         </div>
       </div>

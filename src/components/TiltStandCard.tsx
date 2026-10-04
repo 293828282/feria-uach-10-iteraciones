@@ -9,6 +9,7 @@ import {
   LightbulbIdeaIcon,
   EyeExpandIcon,
   QRIcon,
+  ClipboardCheckIcon,
 } from '@/components/ui/vectors';
 import { RippleButton } from '@/components/ui/RippleButton';
 
@@ -22,6 +23,7 @@ interface TiltStandCardProps {
   onEvaluate: () => void;
   onOpenImage?: (imageUrl: string, standName: string, category: string) => void;
   onOpenQR?: (stand: Stand) => void;
+  onOpenSheet?: (stand: Stand) => void;
 }
 
 export const TiltStandCard: React.FC<TiltStandCardProps> = ({
@@ -33,6 +35,7 @@ export const TiltStandCard: React.FC<TiltStandCardProps> = ({
   onEvaluate,
   onOpenImage,
   onOpenQR,
+  onOpenSheet,
 }) => {
   const cardRef = useRef<HTMLDivElement | null>(null);
   const [rotateX, setRotateX] = useState(0);
@@ -108,6 +111,20 @@ export const TiltStandCard: React.FC<TiltStandCardProps> = ({
             </span>
 
             <div className="flex items-center gap-1.5">
+              {onOpenSheet && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onOpenSheet(stand);
+                  }}
+                  title="Ver ficha técnica"
+                  className="p-1.5 rounded-full bg-white/90 hover:bg-white text-slate-700 border border-slate-200/80 shadow-xs backdrop-blur-md transition-colors"
+                >
+                  <ClipboardCheckIcon size={13} />
+                </button>
+              )}
+
               {onOpenImage && (
                 <button
                   type="button"

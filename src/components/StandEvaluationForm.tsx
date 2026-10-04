@@ -483,18 +483,18 @@ export const StandEvaluationForm: React.FC<StandEvaluationFormProps> = ({
                 </p>
               )}
 
-              {/* Fast Touch Ripple Selector (1 to 7) */}
-              <div className="pl-0 sm:pl-10 pt-1">
+              {/* Fast Touch Ripple Selector (1 to 7) & Decimal Precision Slider */}
+              <div className="pl-0 sm:pl-10 pt-1 space-y-3">
                 <div className="grid grid-cols-7 gap-1.5 sm:gap-2.5 max-w-md">
                   {scaleNumbers.map((num) => {
-                    const isNumSelected = selectedScore === num;
+                    const isNumSelected = Math.round(selectedScore) === num && selectedScore > 0;
                     return (
                       <RippleButton
                         key={num}
                         type="button"
                         onClick={() => handleScoreChange(crit.id, num)}
                         isActive={isNumSelected}
-                        className={`h-12 sm:h-11 rounded-xl font-mono text-sm sm:text-base font-bold transition-all tabular-nums ${
+                        className={`h-11 rounded-xl font-mono text-sm sm:text-base font-bold transition-all tabular-nums ${
                           isNumSelected ? 'text-base sm:text-lg scale-105 shadow-md' : ''
                         }`}
                       >
@@ -503,10 +503,57 @@ export const StandEvaluationForm: React.FC<StandEvaluationFormProps> = ({
                     );
                   })}
                 </div>
-                <div className="flex justify-between max-w-md mt-2 px-1 text-[10px] text-slate-500 font-mono">
-                  <span>1.0 Deficiente</span>
-                  <span>4.0 Aceptable</span>
-                  <span>7.0 Sobresaliente</span>
+
+                {/* Decimal Fine-Tuning Slider + Micro-stepper */}
+                <div className="bg-white/60 p-2.5 rounded-2xl border border-slate-200/80 max-w-md space-y-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-[11px] font-medium text-slate-600">
+                      Ajuste fino decimal:
+                    </span>
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const current = selectedScore || 4.0;
+                          const next = Math.max(1.0, Math.round((current - 0.1) * 10) / 10);
+                          handleScoreChange(crit.id, next);
+                        }}
+                        className="px-2 py-0.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-mono font-bold transition-colors"
+                        title="Disminuir 0.1"
+                      >
+                        -0.1
+                      </button>
+                      <span className="min-w-[44px] text-center font-mono font-bold text-xs px-2 py-0.5 rounded-lg bg-purple-100 text-purple-900 border border-purple-200 tabular-nums">
+                        {selectedScore > 0 ? selectedScore.toFixed(1) : '—'}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const current = selectedScore || 4.0;
+                          const next = Math.min(7.0, Math.round((current + 0.1) * 10) / 10);
+                          handleScoreChange(crit.id, next);
+                        }}
+                        className="px-2 py-0.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-mono font-bold transition-colors"
+                        title="Aumentar 0.1"
+                      >
+                        +0.1
+                      </button>
+                    </div>
+                  </div>
+                  <input
+                    type="range"
+                    min="1.0"
+                    max="7.0"
+                    step="0.1"
+                    value={selectedScore > 0 ? selectedScore : 4.0}
+                    onChange={(e) => handleScoreChange(crit.id, parseFloat(e.target.value))}
+                    className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-purple-600"
+                  />
+                  <div className="flex justify-between px-0.5 text-[9.5px] text-slate-400 font-mono">
+                    <span>1.0 Deficiente</span>
+                    <span>4.0 Aceptable</span>
+                    <span>7.0 Sobresaliente</span>
+                  </div>
                 </div>
               </div>
             </div>

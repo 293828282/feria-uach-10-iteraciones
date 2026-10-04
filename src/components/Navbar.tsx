@@ -71,29 +71,13 @@ export const Navbar: React.FC<NavbarProps> = ({
               </span>
             </div>
             <p className="text-[11px] text-sky-800 font-medium hidden sm:block">
-              Facultad de Ciencias Económicas y Administrativas &bull; Escuela de Graduados
+              Facultad de Ciencias Económicas y Administrativas &bull; Sede Puerto Montt
             </p>
           </div>
         </div>
 
         {/* Actions & Navigation with Ripple Buttons */}
         <div className="flex items-center gap-2 sm:gap-3">
-          {/* Online/Offline connectivity indicator */}
-          <div
-            className={`hidden lg:flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-mono font-semibold border ${
-              isOnline
-                ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                : 'bg-amber-50 text-amber-700 border-amber-200'
-            }`}
-          >
-            <span
-              className={`w-2 h-2 rounded-full ${
-                isOnline ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'
-              }`}
-            />
-            <span>{isOnline ? 'En Línea' : 'Sin Conexión'}</span>
-          </div>
-
           {/* Sound Toggle Button */}
           <button
             type="button"

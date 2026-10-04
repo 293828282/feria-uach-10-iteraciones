@@ -1,20 +1,33 @@
 import dotenv from 'dotenv';
-dotenv.config();
+dotenv.config({ path: '.env.local' });
+dotenv.config({ path: '.env' });
 
-const apiKey = process.env.GOOGLE_AI_API_KEY;
+const key = process.env.GOOGLE_AI_API_KEY;
 
-async function testGemini() {
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${apiKey}`;
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      contents: [{ role: 'user', parts: [{ text: 'Hola, confirma conexion con la UACh en 1 linea sin emojis.' }] }]
-    })
-  });
-  const data = await res.json();
-  console.log('Gemini status:', res.status);
-  console.log('Gemini text:', data.candidates?.[0]?.content?.parts?.[0]?.text);
+async function testModel(model) {
+  try {
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ contents: [{ parts: [{ text: 'Hola, di test' }] }] })
+    });
+    console.log(model, 'Status:', res.status);
+    if (!res.ok) {
+      const txt = await res.text();
+      console.log('Error:', txt.slice(0, 150));
+    } else {
+      const data = await res.json();
+      console.log('Success:', data.candidates?.[0]?.content?.parts?.[0]?.text?.trim());
+    }
+  } catch(e) {
+    console.log(model, 'Fetch Error:', e.message);
+  }
 }
 
-testGemini();
+async function run() {
+  await testModel('gemini-flash-latest');
+  await testModel('gemini-flash-lite-latest');
+  await testModel('gemini-3.5-flash');
+  await testModel('gemini-3.8-flash');
+}
+run();
